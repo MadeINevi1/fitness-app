@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Методика расчёта{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <h2 class="mb-4 text-center">Методика расчёта</h2>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                Расчёт базового обмена веществ
+            </div>
+            <div class="card-body">
+                <p>
+                    Для оценки базового обмена веществ используется формула Mifflin–St Jeor.
+                    Она учитывает массу тела, рост, возраст и пол пользователя.
+                </p>
+
+                <p><strong>Для мужчин:</strong></p>
+                <p>BMR = 10 × вес + 6.25 × рост − 5 × возраст + 5</p>
+
+                <p><strong>Для женщин:</strong></p>
+                <p>BMR = 10 × вес + 6.25 × рост − 5 × возраст − 161</p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                Расчёт суточной калорийности
+            </div>
+            <div class="card-body">
+                <p>
+                    Полученное значение базового обмена умножается на коэффициент физической активности.
+                    После этого результат корректируется в зависимости от цели пользователя.
+                </p>
+
+                <ul>
+                    <li>снижение веса — умеренный дефицит калорий;</li>
+                    <li>набор мышечной массы — небольшой профицит калорий;</li>
+                    <li>поддержание формы — поддерживающая калорийность.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                Расчёт белков, жиров и углеводов
+            </div>
+            <div class="card-body">
+                <p>
+                    Количество белка рассчитывается с учётом массы тела и выбранной цели.
+                    Для снижения веса и набора мышечной массы используется повышенное потребление белка,
+                    так как белок важен для восстановления и сохранения мышечной ткани.
+                </p>
+
+                <ul>
+                    <li>снижение веса — около 2.0 г белка на 1 кг массы тела;</li>
+                    <li>набор мышечной массы — около 1.8 г белка на 1 кг массы тела;</li>
+                    <li>поддержание формы — около 1.5 г белка на 1 кг массы тела.</li>
+                </ul>
+
+                <p>
+                    Количество жиров рассчитывается как 25% от общей калорийности.
+                    Углеводы рассчитываются как оставшаяся часть калорийности после учёта белков и жиров.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                Формирование тренировочной программы
+            </div>
+            <div class="card-body">
+                <p>
+                    Тренировочная программа формируется с учётом цели пользователя,
+                    уровня подготовки, количества тренировок в неделю и места занятий.
+                    Для новичков подбираются более простые базовые упражнения,
+                    для пользователей среднего уровня и опытных пользователей нагрузка усложняется.
+                </p>
+
+                <p>
+                    При снижении веса акцент делается на повышение общей активности и добавление кардионагрузки.
+                    При наборе мышечной массы основной упор делается на силовые упражнения и постепенное
+                    увеличение нагрузки. При поддержании формы используется комбинированный подход.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                Использованные научные источники
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>
+                        <a href="https://pubmed.ncbi.nlm.nih.gov/2305711/" target="_blank">
+                            Mifflin M. D. et al. A new predictive equation for resting energy expenditure in healthy individuals.
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://pubmed.ncbi.nlm.nih.gov/15883556/" target="_blank">
+                            Frankenfield D. et al. Comparison of predictive equations for resting metabolic rate in healthy nonobese and obese adults.
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://pubmed.ncbi.nlm.nih.gov/28630601/" target="_blank">
+                            Aragon A. A. et al. International society of sports nutrition position stand: diets and body composition.
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://pubmed.ncbi.nlm.nih.gov/28642676/" target="_blank">
+                            Jäger R. et al. International Society of Sports Nutrition Position Stand: protein and exercise.
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://pubmed.ncbi.nlm.nih.gov/19204579/" target="_blank">
+                            American College of Sports Medicine. Progression models in resistance training for healthy adults.
+                        </a>
+                    </li>
+                </ol>
+
+                <p class="mt-3">
+                    Данные источники используются для обоснования выбора формулы расчёта базового обмена,
+                    принципа дефицита или профицита калорий, рекомендаций по потреблению белка и подходов
+                    к построению тренировочных программ.
+                </p>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="{{ url_for('calculator') }}" class="btn btn-primary">
+                Перейти к расчёту
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

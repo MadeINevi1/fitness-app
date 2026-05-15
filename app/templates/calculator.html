@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Расчёт программы{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <h2 class="mb-4 text-center">Расчёт индивидуальной программы</h2>
+
+        <form method="post">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.full_name.label(class="form-label") }}
+                {{ form.full_name(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.age.label(class="form-label") }}
+                {{ form.age(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.height.label(class="form-label") }}
+                {{ form.height(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.weight.label(class="form-label") }}
+                {{ form.weight(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.gender.label(class="form-label") }}
+                {{ form.gender(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.activity_level.label(class="form-label") }}
+                {{ form.activity_level(class="form-select") }}
+            </div>
+            <div class="mb-3">
+                {{ form.training_level.label(class="form-label") }}
+                {{ form.training_level(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.workouts_per_week.label(class="form-label") }}
+                {{ form.workouts_per_week(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.training_place.label(class="form-label") }}
+                {{ form.training_place(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.goal.label(class="form-label") }}
+                {{ form.goal(class="form-select") }}
+            </div>
+
+            <div class="d-grid">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
