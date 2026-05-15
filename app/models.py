@@ -15,12 +15,14 @@ class User(UserMixin):
 
     def check_password(self, password):
         conn = get_db_connection()
+
         if conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT password_hash FROM users WHERE user_id = %s",
+                "SELECT password_hash FROM users WHERE user_id = ?",
                 (self.id,)
             )
+
             result = cur.fetchone()
             close_db_connection(conn)
 
@@ -42,13 +44,12 @@ class User(UserMixin):
                 cur.execute(
                     """
                     INSERT INTO users (email, password_hash, role)
-                    VALUES (%s, %s, %s)
-                    RETURNING user_id;
+                    VALUES (?, ?, ?);
                     """,
                     (email, password_hash, "user")
                 )
 
-                user_id = cur.fetchone()[0]
+                user_id = cur.lastrowid
                 conn.commit()
 
                 return User(user_id, email, "user")
@@ -74,7 +75,7 @@ def get_user_by_id(user_id):
             """
             SELECT user_id, email, role
             FROM users
-            WHERE user_id = %s;
+            WHERE user_id = ?;
             """,
             (user_id,)
         )
@@ -102,7 +103,7 @@ def get_user_by_email(email):
             """
             SELECT user_id, email, role
             FROM users
-            WHERE email = %s;
+            WHERE email = ?;
             """,
             (email,)
         )

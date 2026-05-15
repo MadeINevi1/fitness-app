@@ -21,7 +21,7 @@
         <tbody>
             {% for result in results %}
             <tr>
-                <td>{{ result.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td>{{ result.created_at }}</td>
                 <td>{{ result.calories }} ккал</td>
                 <td>{{ result.proteins }} г</td>
                 <td>{{ result.fats }} г</td>

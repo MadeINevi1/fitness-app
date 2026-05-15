@@ -297,7 +297,7 @@ def calculator_view():
                     """
                     INSERT INTO user_profiles
                     (user_id, full_name, age, height, weight, gender, activity_level, training_level, workouts_per_week, training_place, goal)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                     (
                         current_user.id,
@@ -318,7 +318,7 @@ def calculator_view():
                     """
                     INSERT INTO fitness_results
                     (user_id, calories, proteins, fats, carbs, training_plan, nutrition_plan)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s);
+                    VALUES (?, ?, ?, ?, ?, ?, ?);
                     """,
                     (
                         current_user.id,
@@ -366,7 +366,7 @@ def history_view():
                 """
                 SELECT result_id, calories, proteins, fats, carbs, created_at
                 FROM fitness_results
-                WHERE user_id = %s
+                WHERE user_id = ?
                 ORDER BY created_at DESC;
                 """,
                 (current_user.id,)
@@ -409,7 +409,7 @@ def history_detail_view(result_id):
                 SELECT result_id, calories, proteins, fats, carbs,
                        training_plan, nutrition_plan, created_at
                 FROM fitness_results
-                WHERE result_id = %s AND user_id = %s;
+                WHERE result_id = ? AND user_id = ?;
                 """,
                 (result_id, current_user.id)
             )
