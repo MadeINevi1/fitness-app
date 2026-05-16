@@ -6,45 +6,65 @@
 <h2 class="mb-4 text-center">История расчётов</h2>
 
 {% if results %}
-<div class="table-responsive">
-    <table class="table table-bordered table-striped align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th>Дата</th>
-                <th>Калории</th>
-                <th>Белки</th>
-                <th>Жиры</th>
-                <th>Углеводы</th>
-                <th>Действие</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for result in results %}
-            <tr>
-                <td>{{ result.created_at }}</td>
-                <td>{{ result.calories }} ккал</td>
-                <td>{{ result.proteins }} г</td>
-                <td>{{ result.fats }} г</td>
-                <td>{{ result.carbs }} г</td>
-                <td>
-                    <a href="{{ url_for('history_detail', result_id=result.result_id) }}" class="btn btn-sm btn-primary">
-                        Подробнее
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<div class="alert alert-info text-center">
-    У вас пока нет сохранённых расчётов.
-</div>
-{% endif %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Дата</th>
+                    <th>Калории</th>
+                    <th>Белки</th>
+                    <th>Жиры</th>
+                    <th>Углеводы</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
 
-<div class="text-center mt-4">
-    <a href="{{ url_for('calculator') }}" class="btn btn-primary">
-        Выполнить новый расчёт
-    </a>
-</div>
+            <tbody>
+                {% for result in results %}
+                    <tr>
+                        <td>{{ result.created_at }}</td>
+                        <td>{{ result.calories }} ккал</td>
+                        <td>{{ result.proteins }} г</td>
+                        <td>{{ result.fats }} г</td>
+                        <td>{{ result.carbs }} г</td>
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{{ url_for('history_detail', result_id=result.result_id) }}"
+                                   class="btn btn-sm btn-primary">
+                                    Подробнее
+                                </a>
+
+                                {% if result.profile_id %}
+                                    <a href="{{ url_for('progress', profile_id=result.profile_id) }}"
+                                       class="btn btn-sm btn-success">
+                                        Прогресс
+                                    </a>
+                                {% endif %}
+
+                                <form method="post"
+                                      action="{{ url_for('delete_history_result', result_id=result.result_id) }}"
+                                      onsubmit="return confirm('Удалить этот расчёт и связанный с ним прогресс?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        Удалить
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        История расчётов пока пуста.
+    </div>
+
+    <div class="text-center">
+        <a href="{{ url_for('calculator') }}" class="btn btn-primary">
+            Выполнить первый расчёт
+        </a>
+    </div>
+{% endif %}
 {% endblock %}

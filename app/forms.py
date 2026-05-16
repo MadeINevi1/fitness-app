@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, IntegerField, FloatField, SelectField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange
+from wtforms import StringField, PasswordField, SubmitField, IntegerField, FloatField, SelectField, TextAreaField
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, Optional
 
 
 class RegistrationForm(FlaskForm):
@@ -53,8 +53,13 @@ class FitnessForm(FlaskForm):
     )
 
     weight = FloatField(
-        "Вес, кг",
-        validators=[DataRequired(), NumberRange(min=30, max=250)]
+        "Текущий вес, кг",
+        validators=[DataRequired(), NumberRange(min=30, max=300)]
+    )
+
+    target_weight = FloatField(
+        "Желаемый вес, кг",
+        validators=[DataRequired(), NumberRange(min=30, max=300)]
     )
 
     gender = SelectField(
@@ -97,6 +102,16 @@ class FitnessForm(FlaskForm):
         validators=[DataRequired()]
     )
 
+    program_duration = SelectField(
+        "Минимальный срок программы",
+        choices=[
+            ("4", "4 недели"),
+            ("8", "8 недель"),
+            ("12", "12 недель")
+        ],
+        validators=[DataRequired()]
+    )
+
     training_place = SelectField(
         "Место тренировок",
         choices=[
@@ -117,3 +132,22 @@ class FitnessForm(FlaskForm):
     )
 
     submit = SubmitField("Рассчитать программу")
+
+
+class ProgressForm(FlaskForm):
+    week_number = IntegerField(
+        "Номер недели",
+        validators=[DataRequired(), NumberRange(min=1, max=200)]
+    )
+
+    weight = FloatField(
+        "Текущий вес, кг",
+        validators=[DataRequired(), NumberRange(min=30, max=300)]
+    )
+
+    note = TextAreaField(
+        "Комментарий",
+        validators=[Optional(), Length(max=500)]
+    )
+
+    submit = SubmitField("Добавить запись")

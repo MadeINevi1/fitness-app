@@ -4,8 +4,14 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-7">
+    <div class="col-md-8">
         <h2 class="mb-4 text-center">Расчёт индивидуальной программы</h2>
+
+        <div class="alert alert-info">
+            <strong>Подсказка:</strong> заполните текущие данные и желаемый вес.
+            На основе этих данных приложение рассчитает примерный срок достижения цели,
+            питание и тренировочный план.
+        </div>
 
         <form method="post">
             {{ form.hidden_tag() }}
@@ -31,6 +37,14 @@
             </div>
 
             <div class="mb-3">
+                {{ form.target_weight.label(class="form-label") }}
+                {{ form.target_weight(class="form-control") }}
+                <div class="form-text">
+                    Например, если текущий вес 100 кг, а цель — 70 кг, укажите 70.
+                </div>
+            </div>
+
+            <div class="mb-3">
                 {{ form.gender.label(class="form-label") }}
                 {{ form.gender(class="form-select") }}
             </div>
@@ -39,6 +53,18 @@
                 {{ form.activity_level.label(class="form-label") }}
                 {{ form.activity_level(class="form-select") }}
             </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    Как выбрать уровень активности?
+                </div>
+                <div class="card-body">
+                    <p><strong>Низкий:</strong> сидячая работа, мало ходьбы, тренировки отсутствуют или 1 раз в неделю.</p>
+                    <p><strong>Средний:</strong> 2–3 тренировки в неделю, регулярная ходьба, обычная повседневная активность.</p>
+                    <p><strong>Высокий:</strong> 4–5 тренировок в неделю, активная работа или большое количество движения в течение дня.</p>
+                </div>
+            </div>
+
             <div class="mb-3">
                 {{ form.training_level.label(class="form-label") }}
                 {{ form.training_level(class="form-select") }}
@@ -47,6 +73,14 @@
             <div class="mb-3">
                 {{ form.workouts_per_week.label(class="form-label") }}
                 {{ form.workouts_per_week(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.program_duration.label(class="form-label") }}
+                {{ form.program_duration(class="form-select") }}
+                <div class="form-text">
+                    Если цель требует больше времени, приложение автоматически рассчитает более реалистичный срок.
+                </div>
             </div>
 
             <div class="mb-3">
