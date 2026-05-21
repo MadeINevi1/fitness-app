@@ -8,50 +8,154 @@ from app.db import get_db_connection, close_db_connection
 
 
 def calculate_bmr(weight, height, age, gender):
+    """
+    Расчёт базового обмена веществ по формуле Mifflin–St Jeor.
+    """
     if gender == "male":
         return 10 * weight + 6.25 * height - 5 * age + 5
-    else:
-        return 10 * weight + 6.25 * height - 5 * age - 161
+
+    return 10 * weight + 6.25 * height - 5 * age - 161
 
 
-def calculate_calories(bmr, activity_level, goal):
-    activity_factors = {
-        "low": 1.2,
-        "medium": 1.55,
-        "high": 1.725
-    }
-
-    calories = bmr * activity_factors.get(activity_level, 1.2)
+def calculate_daily_training_calories(weight, goal, workouts_per_week, training_level):
+    """
+    Ориентировочная оценка среднего расхода энергии от будущих тренировок.
+    Недельный расход от тренировок делится на 7 дней.
+    """
+    workouts_per_week = int(workouts_per_week)
 
     if goal == "weight_loss":
-        calories -= 300
+        calories_per_workout = weight * 5.5
     elif goal == "muscle_gain":
-        calories += 300
+        calories_per_workout = weight * 4.5
+    else:
+        calories_per_workout = weight * 4.0
 
-    return round(calories, 2)
+    intensity_factors = {
+        "beginner": 0.85,
+        "intermediate": 1.0,
+        "advanced": 1.15,
+    }
+
+    intensity_factor = intensity_factors.get(training_level, 1.0)
+
+    weekly_training_calories = (
+        calories_per_workout
+        * workouts_per_week
+        * intensity_factor
+    )
+
+    daily_training_calories = weekly_training_calories / 7
+
+    return daily_training_calories
+
+
+def calculate_calories(
+    bmr,
+    weight,
+    activity_level,
+    goal,
+    workouts_per_week,
+    training_level
+):
+    """
+    Итоговая логика:
+    1. Считается базовый обмен.
+    2. Учитывается повседневная активность вне тренировок.
+    3. Отдельно добавляется средний расход от будущих тренировок.
+    4. Получается калорийность поддержания.
+    5. Калорийность корректируется под цель.
+    """
+    lifestyle_factors = {
+        "sedentary": 1.20,
+        "light": 1.35,
+        "moderate": 1.50,
+        "physical": 1.70,
+        "heavy_physical": 1.90,
+
+        # Старые значения оставлены на случай, если в базе или форме ещё есть low/medium/high.
+        "low": 1.20,
+        "medium": 1.50,
+        "high": 1.70,
+    }
+
+    lifestyle_factor = lifestyle_factors.get(activity_level, 1.20)
+
+    lifestyle_calories = bmr * lifestyle_factor
+
+    training_calories = calculate_daily_training_calories(
+        weight=weight,
+        goal=goal,
+        workouts_per_week=workouts_per_week,
+        training_level=training_level,
+    )
+
+    maintenance_calories = lifestyle_calories + training_calories
+
+    if goal == "weight_loss":
+        target_calories = maintenance_calories * 0.85
+    elif goal == "muscle_gain":
+        target_calories = maintenance_calories * 1.08
+    else:
+        target_calories = maintenance_calories
+
+    return {
+        "target_calories": round(target_calories, 2),
+        "maintenance_calories": round(maintenance_calories, 2),
+        "lifestyle_calories": round(lifestyle_calories, 2),
+        "training_calories": round(training_calories, 2),
+    }
 
 
 def calculate_macros(calories, weight, goal):
+    """
+    Расчёт БЖУ.
+    Белки считаются от массы тела.
+    Жиры считаются как доля от калорийности.
+    Углеводы считаются с ограничением, чтобы не получались чрезмерные значения.
+    """
     if goal == "weight_loss":
         protein_per_kg = 2.0
-        fat_percent = 0.25
+        fat_percent = 0.28
+        min_carb_percent = 0.35
+        max_carb_percent = 0.50
     elif goal == "muscle_gain":
         protein_per_kg = 1.8
-        fat_percent = 0.25
+        fat_percent = 0.27
+        min_carb_percent = 0.40
+        max_carb_percent = 0.55
     else:
-        protein_per_kg = 1.5
-        fat_percent = 0.25
+        protein_per_kg = 1.6
+        fat_percent = 0.30
+        min_carb_percent = 0.40
+        max_carb_percent = 0.55
 
-    proteins = round(weight * protein_per_kg, 2)
-
+    proteins = weight * protein_per_kg
     protein_calories = proteins * 4
-    fat_calories = calories * fat_percent
-    fats = round(fat_calories / 9, 2)
 
-    carb_calories = calories - protein_calories - fat_calories
-    carbs = round(carb_calories / 4, 2)
+    fats = (calories * fat_percent) / 9
+    fat_calories = fats * 9
 
-    return proteins, fats, carbs
+    carbs = (calories - protein_calories - fat_calories) / 4
+
+    min_carbs = (calories * min_carb_percent) / 4
+    max_carbs = (calories * max_carb_percent) / 4
+
+    if carbs > max_carbs:
+        carbs = max_carbs
+        remaining_calories = calories - protein_calories - carbs * 4
+        fats = remaining_calories / 9
+
+    if carbs < min_carbs:
+        carbs = min_carbs
+        remaining_calories = calories - protein_calories - carbs * 4
+        fats = remaining_calories / 9
+
+    if fats < 0:
+        fats = (calories * 0.20) / 9
+        carbs = (calories - protein_calories - fats * 9) / 4
+
+    return round(proteins, 2), round(fats, 2), round(carbs, 2)
 
 
 def calculate_goal_summary(current_weight, target_weight, goal, selected_duration):
@@ -72,7 +176,7 @@ def calculate_goal_summary(current_weight, target_weight, goal, selected_duratio
                 "description": (
                     "Для цели снижения веса желаемый вес должен быть меньше текущего. "
                     "Сейчас приложение будет использовать выбранный минимальный срок программы."
-                )
+                ),
             }
 
         recommended_rate = 0.7
@@ -90,11 +194,12 @@ def calculate_goal_summary(current_weight, target_weight, goal, selected_duratio
                 f"Для снижения веса на {weight_difference} кг рекомендуется постепенный подход.\n"
                 f"Минимальный ориентировочный срок при быстром темпе: около {min_weeks} недель.\n"
                 f"Более мягкий срок при медленном темпе: около {max_weeks} недель.\n"
-                f"Оптимальный расчётный срок для программы: около {max(recommended_weeks, selected_duration)} недель.\n\n"
+                f"Оптимальный расчётный срок для программы: около "
+                f"{max(recommended_weeks, selected_duration)} недель.\n\n"
                 "Рекомендуется отслеживать вес 1 раз в неделю. Если вес снижается слишком быстро, "
                 "калорийность можно немного повысить. Если вес долго не меняется, можно скорректировать "
                 "активность или питание."
-            )
+            ),
         }
 
     if goal == "muscle_gain":
@@ -108,7 +213,7 @@ def calculate_goal_summary(current_weight, target_weight, goal, selected_duratio
                 "description": (
                     "Для цели набора мышечной массы желаемый вес обычно должен быть выше текущего. "
                     "Сейчас приложение будет использовать выбранный минимальный срок программы."
-                )
+                ),
             }
 
         recommended_rate = 0.35
@@ -125,7 +230,7 @@ def calculate_goal_summary(current_weight, target_weight, goal, selected_duratio
                 f"Оптимальный расчётный срок: около {max(recommended_weeks, selected_duration)} недель.\n\n"
                 "При наборе массы важно контролировать не только вес, но и качество питания, "
                 "силовые показатели и восстановление."
-            )
+            ),
         }
 
     return {
@@ -136,242 +241,674 @@ def calculate_goal_summary(current_weight, target_weight, goal, selected_duratio
         "weekly_rate": 0,
         "description": (
             "Для поддержания формы основная задача — сохранить стабильный вес и уровень активности. "
-            "Программа строится на выбранный срок с акцентом на регулярность тренировок и сбалансированное питание."
-        )
+            "Программа строится на выбранный срок с акцентом на регулярность тренировок "
+            "и сбалансированное питание."
+        ),
     }
 
 
+def get_training_parameters(goal, training_level):
+    """
+    Возвращает параметры нагрузки в зависимости от цели и уровня подготовки.
+    """
+
+    if training_level == "beginner":
+        base = {
+            "level_name": "начальный уровень",
+            "sets_main": "2–3",
+            "sets_accessory": "2",
+            "rest_main": "60–90 секунд",
+            "rest_accessory": "45–60 секунд",
+            "intensity": (
+                "умеренная интенсивность. Упражнения выполняются с запасом 2–3 повторения, "
+                "без работы до отказа."
+            ),
+            "progression": (
+                "Сначала нужно освоить технику. Увеличивать нагрузку можно только после того, "
+                "как упражнение выполняется уверенно во всех подходах."
+            ),
+        }
+    elif training_level == "intermediate":
+        base = {
+            "level_name": "средний уровень",
+            "sets_main": "3–4",
+            "sets_accessory": "2–3",
+            "rest_main": "90–120 секунд",
+            "rest_accessory": "60–90 секунд",
+            "intensity": (
+                "средняя интенсивность. Последние повторения должны выполняться с заметным усилием, "
+                "но без нарушения техники."
+            ),
+            "progression": (
+                "Если во всех подходах выполнена верхняя граница повторений, на следующей тренировке "
+                "можно увеличить вес или сложность упражнения на 2,5–5%."
+            ),
+        }
+    else:
+        base = {
+            "level_name": "опытный уровень",
+            "sets_main": "4–5",
+            "sets_accessory": "3–4",
+            "rest_main": "120–180 секунд",
+            "rest_accessory": "60–120 секунд",
+            "intensity": (
+                "повышенная интенсивность. Основные упражнения выполняются тяжело, но технически чисто. "
+                "Работа до отказа допускается только в отдельных изолирующих упражнениях."
+            ),
+            "progression": (
+                "Нагрузка увеличивается постепенно: через рост рабочего веса, количества повторений "
+                "или общего тренировочного объёма. При ухудшении восстановления объём нужно снизить."
+            ),
+        }
+
+    if goal == "weight_loss":
+        base.update({
+            "goal_name": "снижение веса",
+            "main_reps": "10–15",
+            "accessory_reps": "12–15",
+            "cardio": (
+                "Кардио: 20–40 минут умеренной интенсивности 2–4 раза в неделю. "
+                "Подойдут быстрая ходьба, велотренажёр, эллипс или лёгкий бег."
+            ),
+            "goal_focus": (
+                "Акцент программы — увеличение общего расхода энергии, сохранение мышечной массы "
+                "и регулярность тренировок."
+            ),
+        })
+    elif goal == "muscle_gain":
+        base.update({
+            "goal_name": "набор мышечной массы",
+            "main_reps": "6–10",
+            "accessory_reps": "8–12",
+            "cardio": (
+                "Кардио: 1–2 лёгкие сессии по 15–20 минут в неделю. "
+                "Кардио не должно мешать восстановлению после силовых тренировок."
+            ),
+            "goal_focus": (
+                "Акцент программы — прогрессия силовой нагрузки, достаточный тренировочный объём "
+                "и восстановление между занятиями."
+            ),
+        })
+    else:
+        base.update({
+            "goal_name": "поддержание формы",
+            "main_reps": "8–12",
+            "accessory_reps": "10–15",
+            "cardio": (
+                "Кардио: 20–30 минут 1–2 раза в неделю для поддержки выносливости "
+                "и общего уровня активности."
+            ),
+            "goal_focus": (
+                "Акцент программы — поддержание силы, общей физической формы, мобильности "
+                "и стабильного уровня активности."
+            ),
+        })
+
+    return base
+
+
+def make_exercise(name, sets, reps, rest, note=""):
+    """
+    Структура одного упражнения.
+    """
+    return {
+        "name": name,
+        "sets": sets,
+        "reps": reps,
+        "rest": rest,
+        "note": note
+    }
+
+
+def get_workout_templates(training_place, training_level, goal, params):
+    """
+    Возвращает набор тренировочных дней.
+    Упражнения отличаются по месту занятий и уровню подготовки.
+    """
+
+    main_sets = params["sets_main"]
+    accessory_sets = params["sets_accessory"]
+    main_reps = params["main_reps"]
+    accessory_reps = params["accessory_reps"]
+    rest_main = params["rest_main"]
+    rest_accessory = params["rest_accessory"]
+
+    if training_place == "gym":
+        if training_level == "beginner":
+            full_body_a = {
+                "title": "Тренировка A — всё тело",
+                "description": "Базовая тренировка для освоения техники и равномерной нагрузки на основные мышцы.",
+                "exercises": [
+                    make_exercise("Жим ногами в тренажёре", main_sets, main_reps, rest_main, "Основной акцент на мышцы ног."),
+                    make_exercise("Тяга верхнего блока к груди", main_sets, main_reps, rest_main, "Упражнение для спины."),
+                    make_exercise("Жим в тренажёре сидя", main_sets, main_reps, rest_main, "Грудь, плечи и трицепс."),
+                    make_exercise("Сгибание ног в тренажёре", accessory_sets, accessory_reps, rest_accessory, "Задняя поверхность бедра."),
+                    make_exercise("Планка", accessory_sets, "30–45 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            full_body_b = {
+                "title": "Тренировка B — всё тело",
+                "description": "Вторая тренировка недели с другим набором упражнений для снижения однообразия.",
+                "exercises": [
+                    make_exercise("Приседание с гантелью у груди", main_sets, main_reps, rest_main, "Ноги и ягодичные мышцы."),
+                    make_exercise("Тяга горизонтального блока", main_sets, main_reps, rest_main, "Средняя часть спины."),
+                    make_exercise("Жим гантелей лёжа", main_sets, main_reps, rest_main, "Грудные мышцы."),
+                    make_exercise("Гиперэкстензия", accessory_sets, accessory_reps, rest_accessory, "Поясница и ягодичные мышцы."),
+                    make_exercise("Скручивания на пресс", accessory_sets, accessory_reps, rest_accessory, "Мышцы живота."),
+                ],
+            }
+
+            upper = full_body_a
+            lower = full_body_b
+
+        elif training_level == "intermediate":
+            full_body_a = {
+                "title": "Тренировка A — силовая база",
+                "description": "Тренировка с акцентом на базовые многосуставные упражнения.",
+                "exercises": [
+                    make_exercise("Приседания со штангой", main_sets, main_reps, rest_main, "Основное упражнение для ног."),
+                    make_exercise("Жим штанги лёжа", main_sets, main_reps, rest_main, "Грудь, плечи и трицепс."),
+                    make_exercise("Тяга горизонтального блока", main_sets, main_reps, rest_main, "Упражнение для спины."),
+                    make_exercise("Румынская тяга", accessory_sets, accessory_reps, rest_accessory, "Задняя поверхность бедра и ягодичные мышцы."),
+                    make_exercise("Планка", accessory_sets, "45–60 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            full_body_b = {
+                "title": "Тренировка B — силовая и вспомогательная нагрузка",
+                "description": "Тренировка дополняет первый день и развивает остальные мышечные группы.",
+                "exercises": [
+                    make_exercise("Становая тяга в умеренном весе", main_sets, main_reps, rest_main, "Спина, ноги и корпус."),
+                    make_exercise("Жим гантелей сидя", main_sets, main_reps, rest_main, "Плечи."),
+                    make_exercise("Подтягивания или тяга верхнего блока", main_sets, main_reps, rest_main, "Широчайшие мышцы спины."),
+                    make_exercise("Выпады с гантелями", accessory_sets, accessory_reps, rest_accessory, "Ноги и ягодицы."),
+                    make_exercise("Подъём ног или скручивания на пресс", accessory_sets, accessory_reps, rest_accessory, "Мышцы живота."),
+                ],
+            }
+
+            upper = {
+                "title": "Тренировка — верх тела",
+                "description": "Акцент на грудь, спину, плечи и руки.",
+                "exercises": [
+                    make_exercise("Жим штанги лёжа", main_sets, main_reps, rest_main, "Грудь и трицепс."),
+                    make_exercise("Тяга горизонтального блока", main_sets, main_reps, rest_main, "Спина."),
+                    make_exercise("Жим гантелей сидя", main_sets, main_reps, rest_main, "Плечи."),
+                    make_exercise("Тяга верхнего блока к груди", accessory_sets, accessory_reps, rest_accessory, "Широчайшие мышцы спины."),
+                    make_exercise("Подъём гантелей на бицепс", accessory_sets, accessory_reps, rest_accessory, "Изолирующее упражнение для бицепса."),
+                    make_exercise("Разгибание рук на верхнем блоке на трицепс", accessory_sets, accessory_reps, rest_accessory, "Изолирующее упражнение для трицепса."),
+                ],
+            }
+
+            lower = {
+                "title": "Тренировка — низ тела",
+                "description": "Акцент на ноги, ягодичные мышцы и корпус.",
+                "exercises": [
+                    make_exercise("Приседания со штангой", main_sets, main_reps, rest_main, "Квадрицепсы и ягодичные мышцы."),
+                    make_exercise("Румынская тяга", main_sets, main_reps, rest_main, "Задняя поверхность бедра."),
+                    make_exercise("Жим ногами в тренажёре", accessory_sets, accessory_reps, rest_accessory, "Дополнительная нагрузка на ноги."),
+                    make_exercise("Сгибание ног в тренажёре", accessory_sets, accessory_reps, rest_accessory, "Задняя поверхность бедра."),
+                    make_exercise("Подъём на носки стоя или сидя", accessory_sets, accessory_reps, rest_accessory, "Икроножные мышцы."),
+                    make_exercise("Планка", accessory_sets, "45–60 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+        else:
+            full_body_a = {
+                "title": "Тренировка A — тяжёлая силовая",
+                "description": "Основной день с тяжёлыми многосуставными упражнениями.",
+                "exercises": [
+                    make_exercise("Приседания со штангой", main_sets, main_reps, rest_main, "Главное упражнение дня."),
+                    make_exercise("Жим штанги лёжа", main_sets, main_reps, rest_main, "Грудь, плечи и трицепс."),
+                    make_exercise("Подтягивания или тяга верхнего блока", main_sets, main_reps, rest_main, "Спина."),
+                    make_exercise("Румынская тяга", accessory_sets, accessory_reps, rest_accessory, "Задняя поверхность бедра."),
+                    make_exercise("Подъём ног в висе", accessory_sets, accessory_reps, rest_accessory, "Пресс."),
+                ],
+            }
+
+            full_body_b = {
+                "title": "Тренировка B — объёмная силовая",
+                "description": "День с повышенным тренировочным объёмом и дополнительными упражнениями.",
+                "exercises": [
+                    make_exercise("Становая тяга", main_sets, main_reps, rest_main, "Спина, ноги и корпус."),
+                    make_exercise("Армейский жим стоя", main_sets, main_reps, rest_main, "Плечи."),
+                    make_exercise("Тяга штанги в наклоне", main_sets, main_reps, rest_main, "Спина."),
+                    make_exercise("Болгарские выпады", accessory_sets, accessory_reps, rest_accessory, "Ноги и ягодицы."),
+                    make_exercise("Планка с дополнительным весом", accessory_sets, "45–60 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            upper = {
+                "title": "Тренировка — верх тела",
+                "description": "Силовая тренировка для груди, спины, плеч и рук.",
+                "exercises": [
+                    make_exercise("Жим штанги лёжа", main_sets, main_reps, rest_main, "Грудь и трицепс."),
+                    make_exercise("Подтягивания", main_sets, main_reps, rest_main, "Спина и бицепс."),
+                    make_exercise("Армейский жим стоя", main_sets, main_reps, rest_main, "Плечи."),
+                    make_exercise("Тяга штанги в наклоне", main_sets, main_reps, rest_main, "Спина."),
+                    make_exercise("Подъём штанги на бицепс", accessory_sets, accessory_reps, rest_accessory, "Изолирующее упражнение для бицепса."),
+                    make_exercise("Французский жим или разгибание рук на блоке на трицепс", accessory_sets, accessory_reps, rest_accessory, "Изолирующее упражнение для трицепса."),
+                ],
+            }
+
+            lower = {
+                "title": "Тренировка — низ тела",
+                "description": "Тяжёлая тренировка для ног, ягодиц и корпуса.",
+                "exercises": [
+                    make_exercise("Приседания со штангой", main_sets, main_reps, rest_main, "Основное упражнение для ног."),
+                    make_exercise("Становая тяга или румынская тяга", main_sets, main_reps, rest_main, "Задняя цепь: спина, ягодицы и бицепс бедра."),
+                    make_exercise("Жим ногами в тренажёре", accessory_sets, accessory_reps, rest_accessory, "Дополнительный объём для ног."),
+                    make_exercise("Болгарские выпады", accessory_sets, accessory_reps, rest_accessory, "Ноги, ягодицы и баланс."),
+                    make_exercise("Подъём на носки стоя или сидя", accessory_sets, accessory_reps, rest_accessory, "Икроножные мышцы."),
+                    make_exercise("Подъём ног в висе", accessory_sets, accessory_reps, rest_accessory, "Пресс."),
+                ],
+            }
+
+    else:
+        if training_level == "beginner":
+            full_body_a = {
+                "title": "Тренировка A — всё тело дома",
+                "description": "Простая домашняя тренировка для освоения регулярной нагрузки.",
+                "exercises": [
+                    make_exercise("Приседания без веса", main_sets, main_reps, rest_main, "Ноги и ягодицы."),
+                    make_exercise("Отжимания от опоры", main_sets, main_reps, rest_main, "Грудь и трицепс."),
+                    make_exercise("Ягодичный мост", accessory_sets, accessory_reps, rest_accessory, "Ягодичные мышцы."),
+                    make_exercise("Планка", accessory_sets, "20–40 секунд", rest_accessory, "Мышцы корпуса."),
+                    make_exercise("Скручивания на пресс", accessory_sets, accessory_reps, rest_accessory, "Мышцы живота."),
+                ],
+            }
+
+            full_body_b = {
+                "title": "Тренировка B — всё тело дома",
+                "description": "Вторая домашняя тренировка с акцентом на ноги, спину и корпус.",
+                "exercises": [
+                    make_exercise("Выпады назад", main_sets, main_reps, rest_main, "Ноги и ягодицы."),
+                    make_exercise("Тяга рюкзака в наклоне", main_sets, main_reps, rest_main, "Спина и бицепс."),
+                    make_exercise("Отжимания от пола или опоры", main_sets, main_reps, rest_main, "Грудь и трицепс."),
+                    make_exercise("Упражнение «птица-собака»", accessory_sets, accessory_reps, rest_accessory, "Корпус и стабилизация."),
+                    make_exercise("Боковая планка", accessory_sets, "20–30 секунд на сторону", rest_accessory, "Косые мышцы живота."),
+                ],
+            }
+
+            upper = full_body_a
+            lower = full_body_b
+
+        elif training_level == "intermediate":
+            full_body_a = {
+                "title": "Тренировка A — силовая дома",
+                "description": "Домашняя тренировка с использованием веса тела и подручного отягощения.",
+                "exercises": [
+                    make_exercise("Приседания с рюкзаком", main_sets, main_reps, rest_main, "Ноги."),
+                    make_exercise("Отжимания от пола", main_sets, main_reps, rest_main, "Грудь и трицепс."),
+                    make_exercise("Тяга рюкзака в наклоне", main_sets, main_reps, rest_main, "Спина и бицепс."),
+                    make_exercise("Болгарские выпады", accessory_sets, accessory_reps, rest_accessory, "Ноги и ягодицы."),
+                    make_exercise("Планка с касанием плеч", accessory_sets, accessory_reps, rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            full_body_b = {
+                "title": "Тренировка B — функциональная дома",
+                "description": "Тренировка для силы, выносливости и контроля корпуса.",
+                "exercises": [
+                    make_exercise("Выпады вперёд или назад", main_sets, main_reps, rest_main, "Ноги."),
+                    make_exercise("Отжимания с узкой постановкой рук", main_sets, main_reps, rest_main, "Трицепс и грудь."),
+                    make_exercise("Ягодичный мост на одной ноге", accessory_sets, accessory_reps, rest_accessory, "Ягодицы."),
+                    make_exercise("Берпи в умеренном темпе", accessory_sets, "8–12", rest_accessory, "Общая выносливость."),
+                    make_exercise("Боковая планка", accessory_sets, "30–45 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            upper = {
+                "title": "Тренировка — верх тела дома",
+                "description": "Акцент на грудь, плечи, руки, спину и корпус.",
+                "exercises": [
+                    make_exercise("Отжимания от пола", main_sets, main_reps, rest_main, "Грудь и трицепс."),
+                    make_exercise("Тяга рюкзака в наклоне", main_sets, main_reps, rest_main, "Спина и бицепс."),
+                    make_exercise("Отжимания в положении «домик»", accessory_sets, accessory_reps, rest_accessory, "Плечи."),
+                    make_exercise("Обратные отжимания от стула на трицепс", accessory_sets, accessory_reps, rest_accessory, "Трицепс."),
+                    make_exercise("Планка", accessory_sets, "45–60 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            lower = {
+                "title": "Тренировка — низ тела дома",
+                "description": "Акцент на ноги, ягодицы и корпус.",
+                "exercises": [
+                    make_exercise("Приседания с рюкзаком", main_sets, main_reps, rest_main, "Ноги."),
+                    make_exercise("Болгарские выпады", main_sets, main_reps, rest_main, "Ноги и ягодицы."),
+                    make_exercise("Ягодичный мост на одной ноге", accessory_sets, accessory_reps, rest_accessory, "Ягодицы."),
+                    make_exercise("Подъём на носки", accessory_sets, accessory_reps, rest_accessory, "Икроножные мышцы."),
+                    make_exercise("Скручивания на пресс", accessory_sets, accessory_reps, rest_accessory, "Мышцы живота."),
+                ],
+            }
+
+        else:
+            full_body_a = {
+                "title": "Тренировка A — сложная домашняя",
+                "description": "Интенсивная домашняя тренировка для опытного пользователя.",
+                "exercises": [
+                    make_exercise("Приседания на одной ноге с опорой", main_sets, main_reps, rest_main, "Ноги и баланс."),
+                    make_exercise("Отжимания с ногами на возвышении", main_sets, main_reps, rest_main, "Грудь, плечи и трицепс."),
+                    make_exercise("Тяга тяжёлого рюкзака в наклоне", main_sets, main_reps, rest_main, "Спина и бицепс."),
+                    make_exercise("Прыжковые выпады", accessory_sets, accessory_reps, rest_accessory, "Ноги и выносливость."),
+                    make_exercise("Планка", accessory_sets, "60–90 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            full_body_b = {
+                "title": "Тренировка B — интенсивная домашняя",
+                "description": "Тренировка с повышенной плотностью и сложными упражнениями.",
+                "exercises": [
+                    make_exercise("Болгарские выпады с рюкзаком", main_sets, main_reps, rest_main, "Ноги."),
+                    make_exercise("Отжимания с узкой постановкой рук", main_sets, main_reps, rest_main, "Трицепс и грудь."),
+                    make_exercise("Берпи", accessory_sets, "10–15", rest_accessory, "Общая выносливость."),
+                    make_exercise("Ягодичный мост на одной ноге", accessory_sets, accessory_reps, rest_accessory, "Ягодицы."),
+                    make_exercise("Боковая планка", accessory_sets, "45–60 секунд", rest_accessory, "Мышцы корпуса."),
+                ],
+            }
+
+            upper = full_body_a
+            lower = full_body_b
+
+    conditioning = {
+        "title": "Кардио и восстановительная тренировка",
+        "description": "День для повышения расхода энергии, выносливости и восстановления.",
+        "exercises": [
+            make_exercise("Быстрая ходьба или велотренажёр", "1", "20–40 минут", "по самочувствию", "Умеренная интенсивность."),
+            make_exercise("Мобилизация плеч и таза", "2", "8–12 движений", "30 секунд", "Подготовка суставов."),
+            make_exercise("Лёгкая растяжка", "1", "5–10 минут", "без отдыха", "Без боли и резких движений."),
+        ],
+    }
+
+    return {
+        "full_body_a": full_body_a,
+        "full_body_b": full_body_b,
+        "upper": upper,
+        "lower": lower,
+        "conditioning": conditioning,
+    }
+
+
+def build_week_plan(workouts_per_week, goal, templates):
+    """
+    Формирует недельный план в зависимости от количества тренировок.
+    """
+
+    workouts_per_week = int(workouts_per_week)
+
+    if workouts_per_week == 2:
+        return [
+            templates["full_body_a"],
+            templates["full_body_b"],
+        ]
+
+    if workouts_per_week == 3:
+        if goal == "muscle_gain":
+            return [
+                templates["full_body_a"],
+                templates["full_body_b"],
+                templates["full_body_a"],
+            ]
+
+        return [
+            templates["full_body_a"],
+            templates["conditioning"],
+            templates["full_body_b"],
+        ]
+
+    if workouts_per_week == 4:
+        return [
+            templates["upper"],
+            templates["lower"],
+            templates["upper"],
+            templates["lower"],
+        ]
+
+    return [
+        templates["upper"],
+        templates["lower"],
+        templates["upper"],
+        templates["lower"],
+        templates["conditioning"],
+    ]
+
+
+def format_workout_day(day_number, workout):
+    """
+    Превращает один тренировочный день в текст.
+    """
+
+    text = (
+        f"День {day_number}. {workout['title']}\n"
+        f"{workout['description']}\n\n"
+        f"Разминка: 5–10 минут лёгкой активности, суставная гимнастика, "
+        f"1–2 лёгких разминочных подхода перед первым упражнением.\n\n"
+        f"Основная часть:\n"
+    )
+
+    for index, exercise in enumerate(workout["exercises"], start=1):
+        note = f" {exercise['note']}" if exercise.get("note") else ""
+        text += (
+            f"{index}. {exercise['name']} — {exercise['sets']} подхода, "
+            f"{exercise['reps']} повторений, отдых {exercise['rest']}.{note}\n"
+        )
+
+    text += (
+        "\nЗаминка: 5 минут спокойной ходьбы или лёгкой растяжки.\n"
+    )
+
+    return text
+
+
 def generate_training_plan(goal, training_level, workouts_per_week, training_place, program_duration):
+    """
+    Формирует подробную тренировочную программу.
+    """
+
     workouts_per_week = int(workouts_per_week)
     program_duration = int(program_duration)
 
     place_text = {
         "home": "дома",
-        "gym": "в тренажёрном зале"
+        "gym": "в тренажёрном зале",
     }
 
-    level_text = {
-        "beginner": "начальный уровень",
-        "intermediate": "средний уровень",
-        "advanced": "опытный уровень"
-    }
+    params = get_training_parameters(goal, training_level)
+    templates = get_workout_templates(training_place, training_level, goal, params)
+    week_plan = build_week_plan(workouts_per_week, goal, templates)
 
-    goal_text = {
-        "weight_loss": "снижение веса",
-        "muscle_gain": "набор мышечной массы",
-        "maintenance": "поддержание формы"
-    }
-
-    if training_place == "home":
-        exercises_by_level = {
-            "beginner": [
-                "приседания без веса — 3 подхода по 12 повторений",
-                "отжимания от пола или от опоры — 3 подхода по 8–10 повторений",
-                "планка — 3 подхода по 30 секунд",
-                "выпады — 3 подхода по 10 повторений на каждую ногу",
-                "скручивания на пресс — 3 подхода по 15 повторений"
-            ],
-            "intermediate": [
-                "приседания с рюкзаком — 4 подхода по 12 повторений",
-                "классические отжимания — 4 подхода по 10–12 повторений",
-                "болгарские выпады — 3 подхода по 10 повторений на каждую ногу",
-                "планка с подъёмом ног — 3 подхода по 40 секунд",
-                "берпи — 3 подхода по 10 повторений"
-            ],
-            "advanced": [
-                "приседания на одной ноге с опорой — 4 подхода по 8 повторений",
-                "отжимания с узкой постановкой рук — 4 подхода по 10 повторений",
-                "прыжковые выпады — 4 подхода по 12 повторений",
-                "берпи — 4 подхода по 12 повторений",
-                "планка — 4 подхода по 60–90 секунд"
-            ]
-        }
-    else:
-        exercises_by_level = {
-            "beginner": [
-                "жим ногами — 3 подхода по 12 повторений",
-                "жим в тренажёре сидя — 3 подхода по 10 повторений",
-                "тяга верхнего блока — 3 подхода по 12 повторений",
-                "гиперэкстензия — 3 подхода по 12 повторений",
-                "скручивания на пресс — 3 подхода по 15 повторений"
-            ],
-            "intermediate": [
-                "жим лёжа — 4 подхода по 8–10 повторений",
-                "тяга горизонтального блока — 4 подхода по 10 повторений",
-                "приседания со штангой — 4 подхода по 8–10 повторений",
-                "румынская тяга — 3 подхода по 10 повторений",
-                "жим гантелей сидя — 3 подхода по 10 повторений"
-            ],
-            "advanced": [
-                "жим лёжа — 5 подходов по 5–8 повторений",
-                "становая тяга — 4 подхода по 5–6 повторений",
-                "приседания со штангой — 5 подходов по 5–8 повторений",
-                "подтягивания — 4 подхода по максимуму",
-                "армейский жим — 4 подхода по 6–8 повторений"
-            ]
-        }
-
-    exercises = exercises_by_level.get(training_level, exercises_by_level["beginner"])
-
-    if goal == "weight_loss":
-        goal_description = (
-            "Основная цель программы — повышение расхода энергии, снижение массы тела "
-            "и улучшение общей выносливости."
-        )
-        cardio = "После основной тренировки рекомендуется выполнять 20–30 минут кардио в умеренном темпе."
-        progression = (
-            "Каждые 2–3 недели можно увеличивать длительность кардио на 5 минут "
-            "или немного повышать общий объём тренировки."
-        )
-    elif goal == "muscle_gain":
-        goal_description = (
-            "Основная цель программы — увеличение мышечной массы за счёт силовых тренировок "
-            "и постепенного повышения нагрузки."
-        )
-        cardio = "Кардио рекомендуется выполнять 1–2 раза в неделю в лёгком режиме, чтобы не мешать восстановлению."
-        progression = (
-            "Если все подходы выполняются уверенно, на следующей неделе можно увеличить рабочий вес "
-            "или сложность упражнения на 2,5–5%."
-        )
-    else:
-        goal_description = (
-            "Основная цель программы — поддержание физической формы, укрепление основных групп мышц "
-            "и сохранение стабильного уровня активности."
-        )
-        cardio = "Кардио рекомендуется выполнять 2 раза в неделю по 20 минут."
-        progression = (
-            "Нагрузку следует увеличивать постепенно, сохраняя комфортный уровень интенсивности."
-        )
+    workout_days_text = "\n\n".join(
+        format_workout_day(index, workout)
+        for index, workout in enumerate(week_plan, start=1)
+    )
 
     if program_duration <= 4:
         stages = (
-            "Структура программы:\n"
-            "Неделя 1 — адаптация к нагрузке и отработка техники упражнений.\n"
-            "Неделя 2 — закрепление режима тренировок.\n"
-            "Неделя 3 — небольшое увеличение нагрузки.\n"
-            "Неделя 4 — контроль результатов и корректировка дальнейшего плана."
+            "Этапы программы:\n"
+            "- Неделя 1: освоение техники и подбор комфортной нагрузки.\n"
+            "- Неделя 2: закрепление режима тренировок.\n"
+            "- Неделя 3: небольшое увеличение нагрузки или количества повторений.\n"
+            "- Неделя 4: контроль результата и корректировка программы."
         )
     elif program_duration <= 8:
         stages = (
-            "Структура программы:\n"
-            "Недели 1–2 — адаптация к нагрузке и изучение техники упражнений.\n"
-            "Недели 3–4 — постепенное увеличение объёма тренировки.\n"
-            "Недели 5–6 — повышение интенсивности и контроль восстановления.\n"
-            "Недели 7–8 — закрепление результата и оценка изменений."
-        )
-    elif program_duration <= 12:
-        stages = (
-            "Структура программы:\n"
-            "Недели 1–3 — адаптация организма к регулярным тренировкам.\n"
-            "Недели 4–6 — постепенное увеличение нагрузки и объёма упражнений.\n"
-            "Недели 7–9 — основной тренировочный этап с контролем прогресса.\n"
-            "Недели 10–12 — закрепление результата и подготовка к следующему циклу."
+            "Этапы программы:\n"
+            "- Недели 1–2: адаптация к нагрузке и отработка техники.\n"
+            "- Недели 3–4: постепенное увеличение объёма тренировки.\n"
+            "- Недели 5–6: повышение интенсивности при сохранении техники.\n"
+            "- Недели 7–8: закрепление результата и анализ прогресса."
         )
     else:
-        part = max(program_duration // 4, 1)
         stages = (
-            "Структура долгосрочной программы:\n"
-            f"Недели 1–{part} — адаптация к режиму питания и регулярным тренировкам.\n"
-            f"Недели {part + 1}–{part * 2} — основной этап снижения веса и закрепление привычек.\n"
-            f"Недели {part * 2 + 1}–{part * 3} — контроль прогресса, корректировка нагрузки и питания.\n"
-            f"Недели {part * 3 + 1}–{program_duration} — закрепление результата и переход к поддержанию формы."
+            "Этапы программы:\n"
+            "- Недели 1–3: адаптация и формирование стабильного режима.\n"
+            "- Недели 4–6: увеличение тренировочного объёма.\n"
+            "- Недели 7–9: основной этап прогрессии нагрузки.\n"
+            "- Недели 10–12: закрепление результата и корректировка дальнейшего плана."
         )
-
-    if workouts_per_week == 2:
-        weekly_split = (
-            "Распределение тренировок по неделе:\n"
-            "Тренировка 1 — всё тело, акцент на ноги и спину.\n"
-            "Тренировка 2 — всё тело, акцент на грудь, плечи и пресс."
-        )
-    elif workouts_per_week == 3:
-        weekly_split = (
-            "Распределение тренировок по неделе:\n"
-            "Тренировка 1 — ноги и пресс.\n"
-            "Тренировка 2 — грудь и спина.\n"
-            "Тренировка 3 — плечи, руки и лёгкое кардио."
-        )
-    elif workouts_per_week == 4:
-        weekly_split = (
-            "Распределение тренировок по неделе:\n"
-            "Тренировка 1 — ноги.\n"
-            "Тренировка 2 — грудь и трицепс.\n"
-            "Тренировка 3 — спина и бицепс.\n"
-            "Тренировка 4 — плечи, пресс и кардио."
-        )
-    else:
-        weekly_split = (
-            "Распределение тренировок по неделе:\n"
-            "Тренировка 1 — ноги.\n"
-            "Тренировка 2 — грудь.\n"
-            "Тренировка 3 — спина.\n"
-            "Тренировка 4 — плечи и руки.\n"
-            "Тренировка 5 — кардио, пресс и восстановительная нагрузка."
-        )
-
-    exercises_text = "\n".join([f"- {exercise}" for exercise in exercises])
 
     return (
         f"Индивидуальная программа тренировок на {program_duration} недель.\n\n"
-        f"Цель: {goal_text.get(goal, 'поддержание формы')}.\n"
-        f"Уровень подготовки: {level_text.get(training_level, 'начальный уровень')}.\n"
+        f"Цель: {params['goal_name']}.\n"
+        f"Уровень подготовки: {params['level_name']}.\n"
         f"Место тренировок: {place_text.get(training_place, 'дома')}.\n"
         f"Количество тренировок: {workouts_per_week} раз(а) в неделю.\n\n"
-        f"{goal_description}\n\n"
+        f"{params['goal_focus']}\n\n"
+        f"Общая интенсивность: {params['intensity']}\n\n"
         f"{stages}\n\n"
-        f"{weekly_split}\n\n"
-        f"Основные упражнения:\n"
-        f"{exercises_text}\n\n"
-        f"{cardio}\n\n"
+        f"Недельный тренировочный план:\n\n"
+        f"{workout_days_text}\n\n"
+        f"Кардио-рекомендации:\n"
+        f"{params['cardio']}\n\n"
         f"Правило прогрессии:\n"
-        f"{progression}"
+        f"{params['progression']}\n\n"
+        f"Контроль восстановления:\n"
+        f"- Если сохраняется сильная мышечная боль, ухудшается сон или падает работоспособность, "
+        f"следующую тренировку лучше сделать легче.\n"
+        f"- Между тяжёлыми тренировками одной мышечной группы желательно оставлять не менее 48 часов.\n"
+        f"- При боли в суставах, головокружении или резком ухудшении самочувствия тренировку нужно прекратить.\n\n"
+        f"Критерий успешности:\n"
+        f"Программа считается подходящей, если пользователь выполняет тренировки регулярно, "
+        f"сохраняет технику упражнений и постепенно улучшает повторения, рабочий вес или общую выносливость."
     )
 
 
 def generate_nutrition_plan(goal, calories, proteins, fats, carbs):
+    """
+    Формирование подробных рекомендаций по питанию.
+
+    Здесь намеренно не задаётся жёсткое количество калорий на завтрак, обед и ужин,
+    потому что приложение формирует рекомендации, а не точное меню по граммам.
+    Пользователь получает ориентиры по продуктам, структуре рациона и вариантам блюд.
+    """
+
     if goal == "weight_loss":
-        goal_text = (
-            "Цель питания — снижение массы тела за счёт умеренного дефицита калорий. "
-            "Рацион должен сохранять достаточное количество белка, чтобы поддерживать мышечную массу."
+        strategy = (
+            "Цель питания — постепенное снижение массы тела за счёт умеренного дефицита калорий. "
+            "Главная задача — уменьшить общую калорийность рациона без слишком резких ограничений, "
+            "сохранив достаточное количество белка, клетчатки и жидкости."
         )
-        breakfast = "овсяная каша, яйцо или творог, фрукт"
-        lunch = "куриная грудка или рыба, гречка или рис, овощной салат"
-        dinner = "рыба, творог или нежирное мясо, овощи"
-        snack = "кефир, йогурт без сахара, фрукт или небольшая порция орехов"
-        advice = "Желательно ограничить сладкие напитки, фастфуд и частые перекусы с высокой калорийностью."
+
+        protein_sources = (
+            "Источники белка: куриная грудка, индейка, нежирная говядина, рыба, яйца, творог, "
+            "греческий йогурт без сахара, бобовые."
+        )
+
+        carb_sources = (
+            "Источники углеводов: гречка, рис, овсянка, картофель, цельнозерновой хлеб, "
+            "макароны из твёрдых сортов пшеницы, овощи, фрукты и ягоды."
+        )
+
+        fat_sources = (
+            "Источники жиров: оливковое масло, орехи, авокадо, жирная рыба, семена. "
+            "Количество жиров не следует снижать слишком сильно, так как они участвуют в обменных процессах."
+        )
+
+        meal_examples = (
+            "Примеры вариантов питания:\n"
+            "- Завтрак: овсянка с ягодами и творогом; или омлет с овощами; или греческий йогурт с фруктом.\n"
+            "- Обед: курица или рыба с гречкой и овощным салатом; или индейка с рисом и овощами.\n"
+            "- Ужин: рыба или творог с овощами; или нежирное мясо с салатом; или яйца с овощами.\n"
+            "- Перекус: кефир, йогурт без сахара, фрукт, творог, небольшая порция орехов."
+        )
+
+        practical_rules = (
+            "Практические правила:\n"
+            "- В каждый основной приём пищи желательно добавлять источник белка.\n"
+            "- Овощи лучше включать 1–2 раза в день для насыщения и нормальной работы пищеварения.\n"
+            "- Сладкие напитки, частые перекусы и фастфуд лучше ограничить, так как они быстро повышают калорийность.\n"
+            "- Если вес не снижается 2 недели подряд, можно уменьшить рацион на 100–150 ккал "
+            "или немного увеличить ежедневную активность."
+        )
 
     elif goal == "muscle_gain":
-        goal_text = (
+        strategy = (
             "Цель питания — набор мышечной массы за счёт небольшого профицита калорий. "
-            "Важно регулярно получать белок, сложные углеводы и достаточно энергии для восстановления."
+            "Важно не просто есть больше, а обеспечить организм достаточным количеством белка, "
+            "углеводов для тренировок и жиров для нормального обмена веществ."
         )
-        breakfast = "овсянка с бананом, яйца, йогурт или творог"
-        lunch = "рис или макароны из твёрдых сортов, курица или говядина, овощи"
-        dinner = "рыба или мясо, картофель или крупа, овощной салат"
-        snack = "творог, протеиновый йогурт, банан или бутерброд с нежирным мясом"
-        advice = "Желательно распределять белок равномерно в течение дня и не пропускать приёмы пищи."
+
+        protein_sources = (
+            "Источники белка: курица, индейка, говядина, рыба, яйца, творог, молочные продукты, "
+            "бобовые, морепродукты."
+        )
+
+        carb_sources = (
+            "Источники углеводов: рис, гречка, овсянка, картофель, макароны из твёрдых сортов, "
+            "цельнозерновой хлеб, фрукты. Углеводы особенно важны до и после силовых тренировок."
+        )
+
+        fat_sources = (
+            "Источники жиров: орехи, оливковое масло, авокадо, жирная рыба, семена, яйца. "
+            "Жиры помогают поддерживать нормальный гормональный фон и общую калорийность рациона."
+        )
+
+        meal_examples = (
+            "Примеры вариантов питания:\n"
+            "- Завтрак: овсянка с бананом и яйцами; или творог с фруктами и орехами; или омлет с хлебом.\n"
+            "- Обед: рис или макароны с курицей, говядиной или рыбой и овощами.\n"
+            "- Ужин: мясо или рыба с картофелем, крупой или овощами.\n"
+            "- Перекус: творог, йогурт, банан, бутерброд с нежирным мясом, орехи.\n"
+            "- После тренировки: белковый продукт и источник углеводов, например творог с фруктом "
+            "или курица с рисом."
+        )
+
+        practical_rules = (
+            "Практические правила:\n"
+            "- Белок должен присутствовать в каждом основном приёме пищи.\n"
+            "- Углеводы лучше распределять вокруг тренировок, чтобы поддерживать энергию и восстановление.\n"
+            "- Если вес не растёт 2–3 недели, можно добавить 100–200 ккал в сутки.\n"
+            "- Если вес растёт слишком быстро, а силовые показатели почти не увеличиваются, "
+            "профицит калорий лучше уменьшить."
+        )
 
     else:
-        goal_text = (
-            "Цель питания — поддержание текущей формы и стабильной массы тела. "
-            "Рацион должен быть сбалансированным без выраженного дефицита или избытка калорий."
+        strategy = (
+            "Цель питания — поддержание формы, стабильного веса и нормального уровня энергии. "
+            "Рацион должен быть сбалансированным: без выраженного дефицита и без постоянного переедания."
         )
-        breakfast = "каша, яйцо или творог, фрукт"
-        lunch = "мясо или рыба, крупа, овощи"
-        dinner = "лёгкий белковый продукт, овощи, небольшая порция гарнира"
-        snack = "фрукт, йогурт, орехи или творог"
-        advice = "Желательно придерживаться стабильного режима питания и контролировать качество продуктов."
+
+        protein_sources = (
+            "Источники белка: мясо, рыба, яйца, творог, йогурт без сахара, бобовые, морепродукты."
+        )
+
+        carb_sources = (
+            "Источники углеводов: крупы, картофель, цельнозерновой хлеб, макароны из твёрдых сортов, "
+            "овощи, фрукты и ягоды."
+        )
+
+        fat_sources = (
+            "Источники жиров: растительные масла, орехи, семена, авокадо, жирная рыба, яйца."
+        )
+
+        meal_examples = (
+            "Примеры вариантов питания:\n"
+            "- Завтрак: каша с фруктом; или омлет с овощами; или творог с ягодами.\n"
+            "- Обед: мясо или рыба с крупой и овощами.\n"
+            "- Ужин: белковый продукт с овощами и небольшим количеством гарнира.\n"
+            "- Перекус: фрукт, йогурт, кефир, творог, орехи."
+        )
+
+        practical_rules = (
+            "Практические правила:\n"
+            "- Следите за регулярностью питания и достаточным количеством белка.\n"
+            "- Не обязательно строго считать каждый продукт, но важно контролировать общий баланс рациона.\n"
+            "- Если вес постепенно увеличивается, можно немного уменьшить порции углеводов или жиров.\n"
+            "- Если вес снижается без такой цели, можно добавить дополнительный перекус или увеличить порцию гарнира."
+        )
 
     return (
-        f"{goal_text}\n\n"
-        f"Рекомендуемая суточная калорийность: {calories} ккал.\n"
-        f"Рекомендуемое количество белков: {proteins} г.\n"
-        f"Рекомендуемое количество жиров: {fats} г.\n"
-        f"Рекомендуемое количество углеводов: {carbs} г.\n\n"
-        f"Пример завтрака: {breakfast}.\n"
-        f"Пример обеда: {lunch}.\n"
-        f"Пример ужина: {dinner}.\n"
-        f"Пример перекуса: {snack}.\n\n"
-        f"{advice}"
+        f"{strategy}\n\n"
+        f"Расчётные ориентиры на сутки:\n"
+        f"- Калорийность: {calories} ккал.\n"
+        f"- Белки: {proteins} г.\n"
+        f"- Жиры: {fats} г.\n"
+        f"- Углеводы: {carbs} г.\n\n"
+        f"{protein_sources}\n\n"
+        f"{carb_sources}\n\n"
+        f"{fat_sources}\n\n"
+        f"{meal_examples}\n\n"
+        f"{practical_rules}"
     )
 
 
@@ -455,11 +992,16 @@ def calculator_view():
             gender=form.gender.data
         )
 
-        calories = calculate_calories(
+        calorie_result = calculate_calories(
             bmr=bmr,
+            weight=form.weight.data,
             activity_level=form.activity_level.data,
-            goal=form.goal.data
+            goal=form.goal.data,
+            workouts_per_week=form.workouts_per_week.data,
+            training_level=form.training_level.data,
         )
+
+        calories = calorie_result["target_calories"]
 
         proteins, fats, carbs = calculate_macros(
             calories=calories,
@@ -493,9 +1035,9 @@ def calculator_view():
                 cur.execute(
                     """
                     INSERT INTO user_profiles
-                    (user_id, full_name, age, height, weight, target_weight, target_duration_weeks,
-                     gender, activity_level, training_level, workouts_per_week, program_duration,
-                     training_place, goal)
+                    (user_id, full_name, age, height, weight, target_weight,
+                     target_duration_weeks, gender, activity_level, training_level,
+                     workouts_per_week, program_duration, training_place, goal)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                     (
@@ -521,7 +1063,8 @@ def calculator_view():
                 cur.execute(
                     """
                     INSERT INTO fitness_results
-                    (user_id, profile_id, calories, proteins, fats, carbs, training_plan, nutrition_plan)
+                    (user_id, profile_id, calories, proteins, fats, carbs,
+                     training_plan, nutrition_plan)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                     (
@@ -559,6 +1102,7 @@ def calculator_view():
         )
 
     return render_template("calculator.html", form=form)
+
 
 @login_required
 def history_view():
@@ -602,6 +1146,7 @@ def history_view():
             close_db_connection(conn)
 
     return render_template("history.html", results=results)
+
 
 @login_required
 def history_detail_view(result_id):
@@ -691,11 +1236,16 @@ def api_calculate_view():
             gender=gender
         )
 
-        calories = calculate_calories(
+        calorie_result = calculate_calories(
             bmr=bmr,
+            weight=weight,
             activity_level=activity_level,
-            goal=goal
+            goal=goal,
+            workouts_per_week=workouts_per_week,
+            training_level=training_level,
         )
+
+        calories = calorie_result["target_calories"]
 
         proteins, fats, carbs = calculate_macros(
             calories=calories,
@@ -722,6 +1272,9 @@ def api_calculate_view():
         return jsonify({
             "bmr": round(bmr, 2),
             "calories": calories,
+            "maintenance_calories": calorie_result["maintenance_calories"],
+            "lifestyle_calories": calorie_result["lifestyle_calories"],
+            "training_calories": calorie_result["training_calories"],
             "proteins": proteins,
             "fats": fats,
             "carbs": carbs,
@@ -734,6 +1287,7 @@ def api_calculate_view():
         return jsonify({
             "error": f"Ошибка обработки данных: {str(e)}"
         }), 400
+
 
 @login_required
 def progress_latest_view():
@@ -833,7 +1387,8 @@ def progress_view(profile_id):
 
                 cur.execute(
                     """
-                    INSERT INTO progress_records (user_id, profile_id, week_number, weight, note)
+                    INSERT INTO progress_records
+                    (user_id, profile_id, week_number, weight, note)
                     VALUES (?, ?, ?, ?, ?);
                     """,
                     (
@@ -846,6 +1401,7 @@ def progress_view(profile_id):
                 )
 
                 conn.commit()
+
                 flash("Запись прогресса успешно добавлена.", "success")
                 return redirect(url_for("progress", profile_id=profile_id))
 
@@ -890,13 +1446,11 @@ def progress_view(profile_id):
                 completed = initial_weight - current_weight
                 total_needed = initial_weight - target_weight
                 remaining_to_target = round(current_weight - target_weight, 2)
-
             elif target_weight > initial_weight:
                 goal_type = "muscle_gain"
                 completed = current_weight - initial_weight
                 total_needed = target_weight - initial_weight
                 remaining_to_target = round(target_weight - current_weight, 2)
-
             else:
                 goal_type = "maintenance"
                 completed = 0
@@ -931,7 +1485,6 @@ def progress_view(profile_id):
 
                 for record in progress_records:
                     week_number = record["week_number"] or 1
-
                     chart_labels.append(f"Неделя {week_number}")
                     chart_weights.append(record["weight"])
 
@@ -1068,7 +1621,6 @@ def delete_history_result_view(result_id):
             )
 
             row = cur.fetchone()
-
             profile_id = row[0] if row else None
 
             cur.execute(

@@ -3,104 +3,153 @@
 {% block title %}Результат расчёта{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-9">
 
-        <h2 class="mb-4 text-center">Индивидуальный план</h2>
+<h2>Индивидуальный план</h2>
 
-        {% if goal_summary %}
-        <div class="card mb-4 border-primary">
-            <div class="card-header bg-primary text-white">
-                План достижения цели
-            </div>
-            <div class="card-body">
-                <p><strong>Текущий вес:</strong> {{ goal_summary.current_weight }} кг</p>
-                <p><strong>Желаемый вес:</strong> {{ goal_summary.target_weight }} кг</p>
-                <p><strong>Необходимое изменение веса:</strong> {{ goal_summary.weight_difference }} кг</p>
+{% if goal_summary %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">План достижения цели</h3>
+    </div>
 
-                {% if goal_summary.recommended_weeks %}
-                    <p><strong>Рекомендуемый срок:</strong> примерно {{ goal_summary.recommended_weeks }} недель</p>
-                    <p><strong>Примерный темп:</strong> {{ goal_summary.weekly_rate }} кг в неделю</p>
-                {% endif %}
+    <div class="card-body">
+        <p>
+            <strong>Текущий вес:</strong> {{ goal_summary.current_weight }} кг
+        </p>
 
-                <p style="white-space: pre-line;">{{ goal_summary.description }}</p>
-            </div>
-        </div>
+        <p>
+            <strong>Желаемый вес:</strong> {{ goal_summary.target_weight }} кг
+        </p>
+
+        <p>
+            <strong>Необходимое изменение веса:</strong> {{ goal_summary.weight_difference }} кг
+        </p>
+
+        {% if goal_summary.recommended_weeks %}
+        <p>
+            <strong>Рекомендуемый срок:</strong> примерно {{ goal_summary.recommended_weeks }} недель
+        </p>
+
+        <p>
+            <strong>Примерный темп:</strong> {{ goal_summary.weekly_rate }} кг в неделю
+        </p>
         {% endif %}
 
-        <div class="card mb-4">
-            <div class="card-header">
-                Расчёт питания
-            </div>
-            <div class="card-body">
-                <p><strong>Рекомендуемая калорийность:</strong> {{ calories }} ккал</p>
-                <p><strong>Белки:</strong> {{ proteins }} г</p>
-                <p><strong>Жиры:</strong> {{ fats }} г</p>
-                <p><strong>Углеводы:</strong> {{ carbs }} г</p>
-            </div>
+        <div class="mt-3">
+            <pre class="result-text">{{ goal_summary.description }}</pre>
         </div>
-
-        <div class="card mb-4">
-            <div class="card-header">
-                Методика расчёта
-            </div>
-            <div class="card-body">
-                <p>
-                    Базовый обмен веществ рассчитывается по формуле Mifflin–St Jeor,
-                    которая учитывает массу тела, рост, возраст и пол пользователя.
-                </p>
-
-                <p>
-                    Суточная калорийность определяется путём умножения базового обмена
-                    на коэффициент физической активности. После этого значение корректируется
-                    в зависимости от цели пользователя.
-                </p>
-
-                <p>
-                    Срок достижения цели рассчитывается ориентировочно. Для снижения веса
-                    используется постепенный темп изменения массы тела, чтобы план был более
-                    реалистичным и безопасным.
-                </p>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header">
-                Рекомендации по питанию
-            </div>
-            <div class="card-body">
-                <p style="white-space: pre-line;">{{ nutrition_plan }}</p>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header">
-                Программа тренировок
-            </div>
-            <div class="card-body">
-                <p style="white-space: pre-line;">{{ training_plan }}</p>
-            </div>
-        </div>
-
-        <div class="alert alert-warning">
-            После начала программы рекомендуется фиксировать вес 1 раз в неделю.
-            Это позволит отслеживать динамику и при необходимости корректировать питание и нагрузку.
-        </div>
-
-        <div class="text-center mb-4">
-            <a href="{{ url_for('calculator') }}" class="btn btn-primary">
-                Выполнить новый расчёт
-            </a>
-
-            <a href="{{ url_for('home') }}" class="btn btn-outline-secondary">
-                В личный кабинет
-            </a>
-
-            <a href="{{ url_for('history') }}" class="btn btn-outline-dark">
-                История расчётов
-            </a>
-        </div>
-
     </div>
 </div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">Расчёт питания</h3>
+    </div>
+
+    <div class="card-body">
+        <p>
+            <strong>Рекомендуемая калорийность:</strong> {{ calories }} ккал
+        </p>
+
+        <p>
+            <strong>Белки:</strong> {{ proteins }} г
+        </p>
+
+        <p>
+            <strong>Жиры:</strong> {{ fats }} г
+        </p>
+
+        <p>
+            <strong>Углеводы:</strong> {{ carbs }} г
+        </p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">Методика расчёта</h3>
+    </div>
+
+    <div class="card-body">
+        <p>
+            Базовый обмен веществ рассчитывается по формуле Mifflin–St Jeor,
+            которая учитывает массу тела, рост, возраст и пол пользователя.
+        </p>
+
+        <p>
+            Суточная калорийность рассчитывается поэтапно: сначала учитывается
+            повседневная активность пользователя вне тренировок, затем отдельно
+            добавляется средний расход энергии от планируемых тренировок.
+            После этого полученная калорийность поддержания корректируется
+            в зависимости от цели пользователя.
+        </p>
+
+        <p>
+            Срок достижения цели рассчитывается ориентировочно. Для снижения веса
+            используется постепенный темп изменения массы тела, а для набора массы —
+            умеренный темп увеличения веса, чтобы программа была более реалистичной.
+        </p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">Рекомендации по питанию</h3>
+    </div>
+
+    <div class="card-body">
+        <pre class="result-text">{{ nutrition_plan }}</pre>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">Программа тренировок</h3>
+    </div>
+
+    <div class="card-body">
+        <pre class="result-text">{{ training_plan }}</pre>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    После начала программы рекомендуется фиксировать вес 1 раз в неделю.
+    Это позволит отслеживать динамику и при необходимости корректировать питание и нагрузку.
+</div>
+
+<div class="mt-4 d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('calculator') }}" class="btn btn-primary">
+        Выполнить новый расчёт
+    </a>
+
+    <a href="{{ url_for('home') }}" class="btn btn-secondary">
+        В личный кабинет
+    </a>
+
+    <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">
+        История расчётов
+    </a>
+
+    {% if profile_id %}
+    <a href="{{ url_for('progress', profile_id=profile_id) }}" class="btn btn-success">
+        Отслеживать прогресс
+    </a>
+    {% endif %}
+</div>
+
+<style>
+    .result-text {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: inherit;
+        font-size: 1rem;
+        line-height: 1.6;
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+</style>
+
 {% endblock %}

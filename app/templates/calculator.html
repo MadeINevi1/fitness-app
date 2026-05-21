@@ -3,100 +3,86 @@
 {% block title %}Расчёт программы{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h2 class="mb-4 text-center">Расчёт индивидуальной программы</h2>
 
-        <div class="alert alert-info">
-            <strong>Подсказка:</strong> заполните текущие данные и желаемый вес.
-            На основе этих данных приложение рассчитает примерный срок достижения цели,
-            питание и тренировочный план.
+<h2>Расчёт индивидуальной программы</h2>
+
+<p>
+    Заполните текущие данные, желаемый вес и параметры будущей программы.
+    Приложение отдельно учитывает вашу повседневную активность вне тренировок
+    и планируемую тренировочную нагрузку.
+</p>
+
+{% macro render_input(field) %}
+<div class="mb-3">
+    {{ field.label(class="form-label") }}
+
+    {% if field.errors %}
+        {{ field(class="form-control is-invalid") }}
+        <div class="invalid-feedback">
+            {% for error in field.errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
         </div>
-
-        <form method="post">
-            {{ form.hidden_tag() }}
-
-            <div class="mb-3">
-                {{ form.full_name.label(class="form-label") }}
-                {{ form.full_name(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.age.label(class="form-label") }}
-                {{ form.age(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.height.label(class="form-label") }}
-                {{ form.height(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.weight.label(class="form-label") }}
-                {{ form.weight(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.target_weight.label(class="form-label") }}
-                {{ form.target_weight(class="form-control") }}
-                <div class="form-text">
-                    Например, если текущий вес 100 кг, а цель — 70 кг, укажите 70.
-                </div>
-            </div>
-
-            <div class="mb-3">
-                {{ form.gender.label(class="form-label") }}
-                {{ form.gender(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.activity_level.label(class="form-label") }}
-                {{ form.activity_level(class="form-select") }}
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header">
-                    Как выбрать уровень активности?
-                </div>
-                <div class="card-body">
-                    <p><strong>Низкий:</strong> сидячая работа, мало ходьбы, тренировки отсутствуют или 1 раз в неделю.</p>
-                    <p><strong>Средний:</strong> 2–3 тренировки в неделю, регулярная ходьба, обычная повседневная активность.</p>
-                    <p><strong>Высокий:</strong> 4–5 тренировок в неделю, активная работа или большое количество движения в течение дня.</p>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                {{ form.training_level.label(class="form-label") }}
-                {{ form.training_level(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.workouts_per_week.label(class="form-label") }}
-                {{ form.workouts_per_week(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.program_duration.label(class="form-label") }}
-                {{ form.program_duration(class="form-select") }}
-                <div class="form-text">
-                    Если цель требует больше времени, приложение автоматически рассчитает более реалистичный срок.
-                </div>
-            </div>
-
-            <div class="mb-3">
-                {{ form.training_place.label(class="form-label") }}
-                {{ form.training_place(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.goal.label(class="form-label") }}
-                {{ form.goal(class="form-select") }}
-            </div>
-
-            <div class="d-grid">
-                {{ form.submit(class="btn btn-primary") }}
-            </div>
-        </form>
-    </div>
+    {% else %}
+        {{ field(class="form-control") }}
+    {% endif %}
 </div>
+{% endmacro %}
+
+{% macro render_select(field) %}
+<div class="mb-3">
+    {{ field.label(class="form-label") }}
+
+    {% if field.errors %}
+        {{ field(class="form-select is-invalid") }}
+        <div class="invalid-feedback">
+            {% for error in field.errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {{ field(class="form-select") }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+<form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+
+    {{ render_input(form.full_name) }}
+    {{ render_input(form.age) }}
+    {{ render_input(form.height) }}
+    {{ render_input(form.weight) }}
+    {{ render_input(form.target_weight) }}
+
+    <div class="form-text mb-3">
+        Например, если текущий вес 100 кг, а цель — 70 кг, укажите 70.
+    </div>
+
+    {{ render_select(form.gender) }}
+
+    {{ render_select(form.activity_level) }}
+
+    <div class="alert alert-info">
+        <strong>Как выбрать повседневную активность?</strong><br>
+        Это активность без учёта будущих тренировок из программы.
+        Если человек учится или работает сидя и мало ходит — выбирается сидячий образ жизни.
+        Если работа связана с постоянной ходьбой или физическим трудом — выбирается высокий уровень.
+        Количество тренировок указывается отдельно ниже.
+    </div>
+
+    {{ render_select(form.training_level) }}
+    {{ render_select(form.workouts_per_week) }}
+    {{ render_select(form.program_duration) }}
+
+    <div class="form-text mb-3">
+        Если цель требует больше времени, приложение автоматически рассчитает более реалистичный срок.
+    </div>
+
+    {{ render_select(form.training_place) }}
+    {{ render_select(form.goal) }}
+
+    {{ form.submit(class="btn btn-primary") }}
+</form>
+
 {% endblock %}
