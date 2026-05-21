@@ -9,6 +9,7 @@ DB_PATH = BASE_DIR / "fitness_app.db"
 def get_db_connection():
     try:
         conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA foreign_keys = ON;")
         return conn
     except Exception as e:
         print(f"Ошибка подключения к базе данных: {e}")

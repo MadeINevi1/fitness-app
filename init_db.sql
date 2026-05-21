@@ -1,34 +1,53 @@
 CREATE TABLE IF NOT EXISTS users (
-    user_id SERIAL PRIMARY KEY,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(30) NOT NULL DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS user_profiles (
-    profile_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    full_name VARCHAR(100),
+    profile_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    full_name TEXT,
     age INTEGER,
-    height NUMERIC(5,2),
-    weight NUMERIC(5,2),
-    gender VARCHAR(20),
-    activity_level VARCHAR(50),
-    training_level VARCHAR(50),
+    height REAL,
+    weight REAL,
+    target_weight REAL,
+    target_duration_weeks INTEGER,
+    gender TEXT,
+    activity_level TEXT,
+    training_level TEXT,
     workouts_per_week INTEGER,
-    training_place VARCHAR(50),
-    goal VARCHAR(50)
+    program_duration INTEGER,
+    training_place TEXT,
+    goal TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS fitness_results (
-    result_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    calories NUMERIC(8,2),
-    proteins NUMERIC(8,2),
-    fats NUMERIC(8,2),
-    carbs NUMERIC(8,2),
+    result_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    profile_id INTEGER,
+    calories REAL,
+    proteins REAL,
+    fats REAL,
+    carbs REAL,
     training_plan TEXT,
     nutrition_plan TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (profile_id) REFERENCES user_profiles(profile_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS progress_records (
+    progress_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    profile_id INTEGER,
+    week_number INTEGER,
+    weight REAL NOT NULL,
+    note TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (profile_id) REFERENCES user_profiles(profile_id) ON DELETE CASCADE
 );

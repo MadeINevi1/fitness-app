@@ -3,7 +3,9 @@
 {% block title %}Личный кабинет{% endblock %}
 
 {% block content %}
-<div class="text-center mt-5">
+<section class="hero-panel text-center mt-5">
+    <div class="eyebrow">Личный кабинет</div>
+
     <h1>Личный кабинет</h1>
 
     <p class="lead mt-3">
@@ -13,5 +15,25 @@
     <a href="{{ url_for('calculator') }}" class="btn btn-primary btn-lg mt-3">
         Рассчитать программу
     </a>
-</div>
+</section>
+
+<section class="feature-grid mt-4">
+    <a class="feature-card feature-link" href="{{ url_for('calculator') }}">
+        <span class="feature-marker"></span>
+        <h3>Новый расчёт</h3>
+        <p>Заполнить параметры и получить индивидуальный план питания и тренировок.</p>
+    </a>
+
+    <a class="feature-card feature-link" href="{{ url_for('history') }}">
+        <span class="feature-marker"></span>
+        <h3>История</h3>
+        <p>Посмотреть сохранённые расчёты и вернуться к предыдущим результатам.</p>
+    </a>
+
+    <a class="feature-card feature-link" href="{{ url_for('progress_latest') }}">
+        <span class="feature-marker"></span>
+        <h3>Прогресс</h3>
+        <p>Добавить текущий вес и оценить динамику достижения цели.</p>
+    </a>
+</section>
 {% endblock %}

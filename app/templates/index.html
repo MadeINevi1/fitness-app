@@ -3,7 +3,9 @@
 {% block title %}Главная{% endblock %}
 
 {% block content %}
-<div class="text-center mt-5">
+<section class="hero-panel text-center mt-5">
+    <div class="eyebrow">Дипломный проект</div>
+
     <h1>Веб-приложение для программ тренировок и питания</h1>
 
     <p class="lead mt-3">
@@ -20,5 +22,34 @@
             Войти
         </a>
     </div>
-</div>
+</section>
+
+<section class="feature-grid mt-4">
+    <div class="feature-card">
+        <span class="feature-marker"></span>
+        <h3>Питание</h3>
+        <p>
+            Расчёт калорийности и БЖУ выполняется с учётом цели, веса,
+            активности и планируемых тренировок.
+        </p>
+    </div>
+
+    <div class="feature-card">
+        <span class="feature-marker"></span>
+        <h3>Тренировки</h3>
+        <p>
+            Программа подбирается по уровню подготовки, месту занятий
+            и количеству тренировок в неделю.
+        </p>
+    </div>
+
+    <div class="feature-card">
+        <span class="feature-marker"></span>
+        <h3>Прогресс</h3>
+        <p>
+            Пользователь может сохранять расчёты и отслеживать изменение
+            веса по неделям.
+        </p>
+    </div>
+</section>
 {% endblock %}

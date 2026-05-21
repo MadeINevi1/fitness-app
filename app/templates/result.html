@@ -4,7 +4,10 @@
 
 {% block content %}
 
-<h2>Индивидуальный план</h2>
+<div class="page-heading">
+    <div class="eyebrow">Результат расчёта</div>
+    <h2>Индивидуальный план</h2>
+</div>
 
 {% if goal_summary %}
 <div class="card mb-4">
@@ -48,21 +51,31 @@
     </div>
 
     <div class="card-body">
-        <p>
-            <strong>Рекомендуемая калорийность:</strong> {{ calories }} ккал
-        </p>
+        <div class="stat-grid">
+            <div class="stat-card stat-primary">
+                <span>Калорийность</span>
+                <strong>{{ calories }}</strong>
+                <small>ккал в сутки</small>
+            </div>
 
-        <p>
-            <strong>Белки:</strong> {{ proteins }} г
-        </p>
+            <div class="stat-card">
+                <span>Белки</span>
+                <strong>{{ proteins }}</strong>
+                <small>г в сутки</small>
+            </div>
 
-        <p>
-            <strong>Жиры:</strong> {{ fats }} г
-        </p>
+            <div class="stat-card">
+                <span>Жиры</span>
+                <strong>{{ fats }}</strong>
+                <small>г в сутки</small>
+            </div>
 
-        <p>
-            <strong>Углеводы:</strong> {{ carbs }} г
-        </p>
+            <div class="stat-card">
+                <span>Углеводы</span>
+                <strong>{{ carbs }}</strong>
+                <small>г в сутки</small>
+            </div>
+        </div>
     </div>
 </div>
 

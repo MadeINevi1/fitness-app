@@ -4,9 +4,12 @@
 
 {% block content %}
 
-<h2>Расчёт индивидуальной программы</h2>
+<div class="page-heading">
+    <div class="eyebrow">Калькулятор</div>
+    <h2>Расчёт индивидуальной программы</h2>
+</div>
 
-<p>
+<p class="page-intro">
     Заполните текущие данные, желаемый вес и параметры будущей программы.
     Приложение отдельно учитывает вашу повседневную активность вне тренировок
     и планируемую тренировочную нагрузку.
@@ -46,8 +49,13 @@
 </div>
 {% endmacro %}
 
-<form method="POST" novalidate>
+<form method="POST" novalidate class="form-panel">
     {{ form.hidden_tag() }}
+
+    <div class="form-section">
+        <h3>Личные данные</h3>
+        <p>Эти параметры используются для расчёта базового обмена и целевого веса.</p>
+    </div>
 
     {{ render_input(form.full_name) }}
     {{ render_input(form.age) }}
@@ -60,6 +68,11 @@
     </div>
 
     {{ render_select(form.gender) }}
+
+    <div class="form-section">
+        <h3>Активность и тренировки</h3>
+        <p>Повседневная активность и будущие тренировки учитываются отдельно.</p>
+    </div>
 
     {{ render_select(form.activity_level) }}
 
@@ -80,9 +93,17 @@
     </div>
 
     {{ render_select(form.training_place) }}
+
+    <div class="form-section">
+        <h3>Цель программы</h3>
+        <p>От цели зависит калорийность, распределение БЖУ и акцент тренировочного плана.</p>
+    </div>
+
     {{ render_select(form.goal) }}
 
-    {{ form.submit(class="btn btn-primary") }}
+    <div class="form-actions">
+        {{ form.submit(class="btn btn-primary btn-lg") }}
+    </div>
 </form>
 
 {% endblock %}
