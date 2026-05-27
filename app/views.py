@@ -265,7 +265,8 @@ def get_training_parameters(goal, training_level):
             ),
             "progression": (
                 "Сначала нужно освоить технику. Увеличивать нагрузку можно только после того, "
-                "как упражнение выполняется уверенно во всех подходах."
+                "как упражнение выполняется уверенно во всех подходах. Обычно достаточно повышать "
+                "рабочий вес или сложность на 2–3%."
             ),
         }
     elif training_level == "intermediate":
@@ -297,7 +298,8 @@ def get_training_parameters(goal, training_level):
             ),
             "progression": (
                 "Нагрузка увеличивается постепенно: через рост рабочего веса, количества повторений "
-                "или общего тренировочного объёма. При ухудшении восстановления объём нужно снизить."
+                "или общего тренировочного объёма. Рабочий вес обычно повышается на 2,5–5%, "
+                "а при ухудшении восстановления объём нужно снизить."
             ),
         }
 
@@ -1115,10 +1117,12 @@ def history_view():
         try:
             cur.execute(
                 """
-                SELECT result_id, profile_id, calories, proteins, fats, carbs, created_at
-                FROM fitness_results
-                WHERE user_id = ?
-                ORDER BY created_at DESC;
+                SELECT fr.result_id, fr.profile_id, up.full_name,
+                       fr.calories, fr.proteins, fr.fats, fr.carbs, fr.created_at
+                FROM fitness_results fr
+                LEFT JOIN user_profiles up ON up.profile_id = fr.profile_id
+                WHERE fr.user_id = ?
+                ORDER BY fr.created_at DESC;
                 """,
                 (current_user.id,)
             )
@@ -1129,11 +1133,14 @@ def history_view():
                 {
                     "result_id": row[0],
                     "profile_id": row[1],
-                    "calories": row[2],
-                    "proteins": row[3],
-                    "fats": row[4],
-                    "carbs": row[5],
-                    "created_at": row[6]
+                    "full_name": row[2] or "Не указано",
+                    "calories": row[3],
+                    "proteins": row[4],
+                    "fats": row[5],
+                    "carbs": row[6],
+                    "created_at": row[7].strftime("%d.%m.%Y %H:%M")
+                    if hasattr(row[7], "strftime")
+                    else str(row[7]).split(".")[0]
                 }
                 for row in rows
             ]
@@ -1178,7 +1185,9 @@ def history_detail_view(result_id):
                     "carbs": row[4],
                     "training_plan": row[5],
                     "nutrition_plan": row[6],
-                    "created_at": row[7]
+                    "created_at": row[7].strftime("%d.%m.%Y %H:%M")
+                    if hasattr(row[7], "strftime")
+                    else str(row[7]).split(".")[0]
                 }
             else:
                 flash("Расчёт не найден.", "warning")

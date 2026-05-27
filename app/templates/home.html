@@ -3,37 +3,114 @@
 {% block title %}Личный кабинет{% endblock %}
 
 {% block content %}
-<section class="hero-panel text-center mt-5">
-    <div class="eyebrow">Личный кабинет</div>
+<section class="hero-panel product-hero clean-hero">
+    <div class="hero-copy">
+        <div class="eyebrow">Личный кабинет</div>
 
-    <h1>Личный кабинет</h1>
+        <h1>Ваш центр расчётов и прогресса</h1>
 
-    <p class="lead mt-3">
-        Здесь пользователь может перейти к расчёту индивидуальной программы тренировок и питания.
-    </p>
+        <p class="lead mt-3">
+            Создавайте расчёты, возвращайтесь к сохранённым результатам
+            и отслеживайте изменение веса по выбранной программе.
+        </p>
 
-    <a href="{{ url_for('calculator') }}" class="btn btn-primary btn-lg mt-3">
-        Рассчитать программу
-    </a>
+        <div class="hero-actions">
+            <a href="{{ url_for('calculator') }}" class="btn btn-primary btn-lg">
+                Рассчитать программу
+            </a>
+            <a href="{{ url_for('history') }}" class="btn btn-accent btn-lg">
+                История расчётов
+            </a>
+            <a href="{{ url_for('progress_latest') }}" class="btn btn-soft btn-lg">
+                Мой прогресс
+            </a>
+        </div>
+    </div>
 </section>
 
-<section class="feature-grid mt-4">
-    <a class="feature-card feature-link" href="{{ url_for('calculator') }}">
-        <span class="feature-marker"></span>
-        <h3>Новый расчёт</h3>
-        <p>Заполнить параметры и получить индивидуальный план питания и тренировок.</p>
-    </a>
+<section class="interface-preview">
+    <div class="section-heading">
+        <div class="eyebrow">Интерфейс</div>
+        <h2>Как выглядит результат работы приложения</h2>
+        <p>
+            На главном экране пользователь получает понятное представление
+            питания, тренировок и динамики прогресса.
+        </p>
+    </div>
 
-    <a class="feature-card feature-link" href="{{ url_for('history') }}">
-        <span class="feature-marker"></span>
-        <h3>История</h3>
-        <p>Посмотреть сохранённые расчёты и вернуться к предыдущим результатам.</p>
-    </a>
+    <div class="preview-grid">
+        <article class="preview-card nutrition-preview">
+            <div class="preview-card-header">
+                <div>
+                    <span>Питание</span>
+                    <h3>Расчёт на день</h3>
+                </div>
+                <strong>2394 ккал</strong>
+            </div>
 
-    <a class="feature-card feature-link" href="{{ url_for('progress_latest') }}">
-        <span class="feature-marker"></span>
-        <h3>Прогресс</h3>
-        <p>Добавить текущий вес и оценить динамику достижения цели.</p>
-    </a>
+            <div class="macro-grid">
+                <div>
+                    <span>Белки</span>
+                    <strong>99 г</strong>
+                </div>
+                <div>
+                    <span>Жиры</span>
+                    <strong>75.7 г</strong>
+                </div>
+                <div>
+                    <span>Углеводы</span>
+                    <strong>329 г</strong>
+                </div>
+            </div>
+
+            <div class="goal-preview-card">
+                <div class="goal-preview-title">
+                    <span>Цель</span>
+                    <strong>План достижения</strong>
+                </div>
+
+                <div class="goal-preview-grid">
+                    <div>
+                        <span>Текущий вес</span>
+                        <strong>55 кг</strong>
+                    </div>
+                    <div>
+                        <span>Цель</span>
+                        <strong>65 кг</strong>
+                    </div>
+                    <div>
+                        <span>Срок</span>
+                        <strong>29 недель</strong>
+                    </div>
+                    <div>
+                        <span>Темп</span>
+                        <strong>0.35 кг/нед.</strong>
+                    </div>
+                </div>
+
+                <p>
+                    Расчёт показывает не только питание, но и реалистичный срок изменения веса.
+                </p>
+            </div>
+        </article>
+
+        <article class="preview-card progress-preview">
+            <div class="preview-card-header">
+                <div>
+                    <span>Прогресс</span>
+                    <h3>Динамика веса</h3>
+                </div>
+                <strong>График</strong>
+            </div>
+
+            <img class="preview-chart-image"
+                 src="{{ url_for('static', filename='img/progress-chart-preview.svg') }}"
+                 alt="Пример графика изменения веса">
+
+            <p class="preview-note">
+                Вес снижается в пределах расчетного темпа. Продолжайте фиксировать результат раз в неделю.
+            </p>
+        </article>
+    </div>
 </section>
 {% endblock %}

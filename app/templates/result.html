@@ -10,39 +10,45 @@
 </div>
 
 {% if goal_summary %}
-<div class="card mb-4">
-    <div class="card-header">
-        <h3 class="mb-0">План достижения цели</h3>
+<section class="result-panel mb-4">
+    <div class="result-panel-header">
+        <span>Цель</span>
+        <h3>План достижения цели</h3>
     </div>
 
-    <div class="card-body">
-        <p>
-            <strong>Текущий вес:</strong> {{ goal_summary.current_weight }} кг
-        </p>
+    <div class="goal-summary-grid">
+        <div>
+            <span>Текущий вес</span>
+            <strong>{{ goal_summary.current_weight }} кг</strong>
+        </div>
 
-        <p>
-            <strong>Желаемый вес:</strong> {{ goal_summary.target_weight }} кг
-        </p>
+        <div>
+            <span>Желаемый вес</span>
+            <strong>{{ goal_summary.target_weight }} кг</strong>
+        </div>
 
-        <p>
-            <strong>Необходимое изменение веса:</strong> {{ goal_summary.weight_difference }} кг
-        </p>
+        <div>
+            <span>Изменение веса</span>
+            <strong>{{ goal_summary.weight_difference }} кг</strong>
+        </div>
 
         {% if goal_summary.recommended_weeks %}
-        <p>
-            <strong>Рекомендуемый срок:</strong> примерно {{ goal_summary.recommended_weeks }} недель
-        </p>
-
-        <p>
-            <strong>Примерный темп:</strong> {{ goal_summary.weekly_rate }} кг в неделю
-        </p>
-        {% endif %}
-
-        <div class="mt-3">
-            <pre class="result-text">{{ goal_summary.description }}</pre>
+        <div>
+            <span>Срок</span>
+            <strong>{{ goal_summary.recommended_weeks }} недель</strong>
         </div>
+
+        <div>
+            <span>Темп</span>
+            <strong>{{ goal_summary.weekly_rate }} кг/нед.</strong>
+        </div>
+        {% endif %}
     </div>
-</div>
+
+    <div class="plan-note">
+        <pre class="result-text">{{ goal_summary.description }}</pre>
+    </div>
+</section>
 {% endif %}
 
 <div class="card mb-4">
@@ -79,56 +85,52 @@
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header">
-        <h3 class="mb-0">Методика расчёта</h3>
-    </div>
+<div class="plan-grid mb-4">
+    <section class="plan-card">
+        <div class="plan-card-header">
+            <span>Питание</span>
+            <h3>Рекомендации по питанию</h3>
+        </div>
 
-    <div class="card-body">
-        <p>
-            Базовый обмен веществ рассчитывается по формуле Mifflin–St Jeor,
-            которая учитывает массу тела, рост, возраст и пол пользователя.
-        </p>
+        <div class="plan-body">
+            {% for line in nutrition_plan.split('\n') %}
+                {% set item = line.strip() %}
+                {% if item %}
+                <div class="plan-line {% if item.endswith(':') %}plan-line-heading{% elif item.startswith('- ') %}plan-line-item{% else %}plan-line-text{% endif %}">
+                    {{ item[2:] if item.startswith('- ') else item }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
 
-        <p>
-            Суточная калорийность рассчитывается поэтапно: сначала учитывается
-            повседневная активность пользователя вне тренировок, затем отдельно
-            добавляется средний расход энергии от планируемых тренировок.
-            После этого полученная калорийность поддержания корректируется
-            в зависимости от цели пользователя.
-        </p>
+    <section class="plan-card">
+        <div class="plan-card-header">
+            <span>Тренировки</span>
+            <h3>Программа тренировок</h3>
+        </div>
 
-        <p>
-            Срок достижения цели рассчитывается ориентировочно. Для снижения веса
-            используется постепенный темп изменения массы тела, а для набора массы —
-            умеренный темп увеличения веса, чтобы программа была более реалистичной.
-        </p>
-    </div>
+        <div class="plan-body">
+            {% for line in training_plan.split('\n') %}
+                {% set item = line.strip() %}
+                {% if item %}
+                <div class="plan-line {% if item.startswith('День ') %}plan-day-title{% elif item.endswith(':') %}plan-line-heading{% elif item.startswith('- ') %}plan-line-item{% else %}plan-line-text{% endif %}">
+                    {{ item[2:] if item.startswith('- ') else item }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header">
-        <h3 class="mb-0">Рекомендации по питанию</h3>
+<div class="alert alert-info plan-alert">
+    <div>
+        <strong>Отслеживание прогресса</strong>
+        <p>
+            После начала программы рекомендуется фиксировать вес 1 раз в неделю.
+            Это позволит отслеживать динамику и при необходимости корректировать питание и нагрузку.
+        </p>
     </div>
-
-    <div class="card-body">
-        <pre class="result-text">{{ nutrition_plan }}</pre>
-    </div>
-</div>
-
-<div class="card mb-4">
-    <div class="card-header">
-        <h3 class="mb-0">Программа тренировок</h3>
-    </div>
-
-    <div class="card-body">
-        <pre class="result-text">{{ training_plan }}</pre>
-    </div>
-</div>
-
-<div class="alert alert-info">
-    После начала программы рекомендуется фиксировать вес 1 раз в неделю.
-    Это позволит отслеживать динамику и при необходимости корректировать питание и нагрузку.
 </div>
 
 <div class="mt-4 d-flex gap-2 flex-wrap">
@@ -150,19 +152,5 @@
     </a>
     {% endif %}
 </div>
-
-<style>
-    .result-text {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font-family: inherit;
-        font-size: 1rem;
-        line-height: 1.6;
-        background-color: transparent;
-        border: none;
-        padding: 0;
-        margin: 0;
-    }
-</style>
 
 {% endblock %}

@@ -83,7 +83,15 @@ def test_register_login_and_calculator_save_result(client):
 
     conn = app_db.get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM fitness_results;")
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM fitness_results fr
+        JOIN users u ON u.user_id = fr.user_id
+        WHERE u.email = ?;
+        """,
+        ("student@example.com",)
+    )
     result_count = cur.fetchone()[0]
     app_db.close_db_connection(conn)
 

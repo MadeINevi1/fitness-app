@@ -163,7 +163,9 @@
                             Серая линия показывает плановую динамику изменения веса.
                         </p>
 
-                        <canvas id="weightChart"></canvas>
+                        <div class="chart-shell">
+                            <canvas id="weightChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -226,6 +228,10 @@
     const planWeights = {{ chart_plan_weights | tojson }};
 
     const ctx = document.getElementById('weightChart');
+    const chartContext = ctx.getContext('2d');
+    const actualGradient = chartContext.createLinearGradient(0, 0, 0, 340);
+    actualGradient.addColorStop(0, 'rgba(19, 124, 139, 0.28)');
+    actualGradient.addColorStop(1, 'rgba(19, 124, 139, 0.02)');
 
     new Chart(ctx, {
         type: 'line',
@@ -233,38 +239,118 @@
             labels: labels,
             datasets: [
                 {
-                    label: 'Фактический вес, кг',
+                    label: 'Фактический вес',
                     data: weights,
-                    tension: 0.3,
-                    fill: false
+                    borderColor: '#137c8b',
+                    backgroundColor: actualGradient,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#137c8b',
+                    pointBorderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 3,
+                    tension: 0.38,
+                    fill: true
                 },
                 {
-                    label: 'Плановый вес, кг',
+                    label: 'Плановый вес',
                     data: planWeights,
-                    tension: 0.3,
+                    borderColor: '#ff8a5b',
+                    backgroundColor: 'rgba(255, 138, 91, 0.08)',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#ff8a5b',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2.5,
+                    tension: 0.38,
                     fill: false,
-                    borderDash: [6, 6]
+                    borderDash: [7, 6]
                 }
             ]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
             plugins: {
                 legend: {
-                    display: true
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        color: '#34485d',
+                        padding: 18,
+                        font: {
+                            size: 13,
+                            weight: '600'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#132530',
+                    titleColor: '#ffffff',
+                    bodyColor: '#d8eef4',
+                    borderColor: 'rgba(255, 255, 255, 0.14)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y} кг`;
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
+                    border: {
+                        display: false
+                    },
+                    grid: {
+                        color: 'rgba(79, 97, 116, 0.16)'
+                    },
+                    ticks: {
+                        color: '#4f6174',
+                        padding: 8,
+                        callback: function(value) {
+                            return value + ' кг';
+                        }
+                    },
                     title: {
                         display: true,
-                        text: 'Вес, кг'
+                        text: 'Вес',
+                        color: '#34485d',
+                        font: {
+                            weight: '700'
+                        }
                     }
                 },
                 x: {
+                    border: {
+                        display: false
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#4f6174',
+                        padding: 8
+                    },
                     title: {
                         display: true,
-                        text: 'Неделя программы'
+                        text: 'Неделя программы',
+                        color: '#34485d',
+                        font: {
+                            weight: '700'
+                        }
                     }
                 }
             }
