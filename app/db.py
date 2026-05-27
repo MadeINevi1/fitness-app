@@ -66,6 +66,9 @@ class PostgresConnection:
 
 def get_db_connection():
     try:
+        if Config.DATABASE_URL:
+            return PostgresConnection(psycopg2.connect(Config.DATABASE_URL))
+
         return PostgresConnection(
             psycopg2.connect(
                 host=Config.DB_SERVER,
