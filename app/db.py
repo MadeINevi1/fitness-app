@@ -1,6 +1,8 @@
 import re
+import ssl
+from urllib.parse import parse_qs, unquote, urlparse
 
-import psycopg2
+import pg8000.dbapi
 
 from app.config import Config
 
@@ -16,6 +18,7 @@ class PostgresCursor:
 
     def execute(self, query, params=None):
         query = query.replace("?", "%s")
+        params = params or ()
         self._lastrowid = None
 
         returning_column = self._get_returning_column(query)
@@ -67,13 +70,13 @@ class PostgresConnection:
 def get_db_connection():
     try:
         if Config.DATABASE_URL:
-            return PostgresConnection(psycopg2.connect(Config.DATABASE_URL))
+            return PostgresConnection(_connect_with_database_url(Config.DATABASE_URL))
 
         return PostgresConnection(
-            psycopg2.connect(
+            pg8000.dbapi.connect(
                 host=Config.DB_SERVER,
-                port=Config.DB_PORT,
-                dbname=Config.DB_NAME,
+                port=int(Config.DB_PORT),
+                database=Config.DB_NAME,
                 user=Config.DB_USER,
                 password=Config.DB_PASSWORD,
             )
@@ -81,6 +84,22 @@ def get_db_connection():
     except Exception as e:
         print(f"Ошибка подключения к базе данных: {e}")
         return None
+
+
+def _connect_with_database_url(database_url):
+    parsed_url = urlparse(database_url)
+    query = parse_qs(parsed_url.query)
+    sslmode = query.get("sslmode", [""])[0]
+    ssl_context = ssl.create_default_context() if sslmode else None
+
+    return pg8000.dbapi.connect(
+        host=parsed_url.hostname,
+        port=parsed_url.port or 5432,
+        database=parsed_url.path.lstrip("/"),
+        user=unquote(parsed_url.username) if parsed_url.username else None,
+        password=unquote(parsed_url.password) if parsed_url.password else None,
+        ssl_context=ssl_context,
+    )
 
 
 def close_db_connection(conn):
