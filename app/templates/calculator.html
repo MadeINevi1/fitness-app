@@ -3,66 +3,107 @@
 {% block title %}Расчёт программы{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-7">
-        <h2 class="mb-4 text-center">Расчёт индивидуальной программы</h2>
 
-        <form method="post">
-            {{ form.hidden_tag() }}
-
-            <div class="mb-3">
-                {{ form.full_name.label(class="form-label") }}
-                {{ form.full_name(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.age.label(class="form-label") }}
-                {{ form.age(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.height.label(class="form-label") }}
-                {{ form.height(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.weight.label(class="form-label") }}
-                {{ form.weight(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.gender.label(class="form-label") }}
-                {{ form.gender(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.activity_level.label(class="form-label") }}
-                {{ form.activity_level(class="form-select") }}
-            </div>
-            <div class="mb-3">
-                {{ form.training_level.label(class="form-label") }}
-                {{ form.training_level(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.workouts_per_week.label(class="form-label") }}
-                {{ form.workouts_per_week(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.training_place.label(class="form-label") }}
-                {{ form.training_place(class="form-select") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.goal.label(class="form-label") }}
-                {{ form.goal(class="form-select") }}
-            </div>
-
-            <div class="d-grid">
-                {{ form.submit(class="btn btn-primary") }}
-            </div>
-        </form>
-    </div>
+<div class="page-heading">
+    <div class="eyebrow">Калькулятор</div>
+    <h2>Расчёт индивидуальной программы</h2>
 </div>
+
+<p class="page-intro">
+    Заполните текущие данные, желаемый вес и параметры будущей программы.
+    Приложение отдельно учитывает вашу повседневную активность вне тренировок
+    и планируемую тренировочную нагрузку.
+</p>
+
+{% macro render_input(field) %}
+<div class="mb-3">
+    {{ field.label(class="form-label") }}
+
+    {% if field.errors %}
+        {{ field(class="form-control is-invalid") }}
+        <div class="invalid-feedback">
+            {% for error in field.errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {{ field(class="form-control") }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_select(field) %}
+<div class="mb-3">
+    {{ field.label(class="form-label") }}
+
+    {% if field.errors %}
+        {{ field(class="form-select is-invalid") }}
+        <div class="invalid-feedback">
+            {% for error in field.errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {{ field(class="form-select") }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+<form method="POST" novalidate class="form-panel">
+    {{ form.hidden_tag() }}
+
+    <div class="form-section">
+        <h3>Личные данные</h3>
+        <p>Эти параметры используются для расчёта базового обмена и целевого веса.</p>
+    </div>
+
+    {{ render_input(form.full_name) }}
+    {{ render_input(form.age) }}
+    {{ render_input(form.height) }}
+    {{ render_input(form.weight) }}
+    {{ render_input(form.target_weight) }}
+
+    <div class="form-text mb-3">
+        Например, если текущий вес 100 кг, а цель — 70 кг, укажите 70.
+    </div>
+
+    {{ render_select(form.gender) }}
+
+    <div class="form-section">
+        <h3>Активность и тренировки</h3>
+        <p>Повседневная активность и будущие тренировки учитываются отдельно.</p>
+    </div>
+
+    {{ render_select(form.activity_level) }}
+
+    <div class="alert alert-info">
+        <strong>Как выбрать повседневную активность?</strong><br>
+        Это активность без учёта будущих тренировок из программы.
+        Если человек учится или работает сидя и мало ходит — выбирается сидячий образ жизни.
+        Если работа связана с постоянной ходьбой или физическим трудом — выбирается высокий уровень.
+        Количество тренировок указывается отдельно ниже.
+    </div>
+
+    {{ render_select(form.training_level) }}
+    {{ render_select(form.workouts_per_week) }}
+    {{ render_select(form.program_duration) }}
+
+    <div class="form-text mb-3">
+        Если цель требует больше времени, приложение автоматически рассчитает более реалистичный срок.
+    </div>
+
+    {{ render_select(form.training_place) }}
+
+    <div class="form-section">
+        <h3>Цель программы</h3>
+        <p>От цели зависит калорийность, распределение БЖУ и акцент тренировочного плана.</p>
+    </div>
+
+    {{ render_select(form.goal) }}
+
+    <div class="form-actions">
+        {{ form.submit(class="btn btn-primary btn-lg") }}
+    </div>
+</form>
+
 {% endblock %}

@@ -3,75 +3,154 @@
 {% block title %}Результат расчёта{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h2 class="mb-4 text-center">Результат индивидуального расчёта</h2>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                Расчёт питания
-            </div>
-            <div class="card-body">
-                <p><strong>Рекомендуемая калорийность:</strong> {{ calories }} ккал</p>
-                <p><strong>Белки:</strong> {{ proteins }} г</p>
-                <p><strong>Жиры:</strong> {{ fats }} г</p>
-                <p><strong>Углеводы:</strong> {{ carbs }} г</p>
-            </div>
-        </div>
-         <div class="card mb-4">
-            <div class="card-header">
-                Методика расчёта
-            </div>
-            <div class="card-body">
-                <p>
-                    Базовый обмен веществ рассчитывается по формуле Mifflin–St Jeor,
-                    которая учитывает массу тела, рост, возраст и пол пользователя.
-                </p>
+<div class="page-heading">
+    <div class="eyebrow">Результат расчёта</div>
+    <h2>Индивидуальный план</h2>
+</div>
 
-                <p>
-                    Суточная калорийность определяется путём умножения базового обмена
-                    на коэффициент физической активности. После этого значение корректируется
-                    в зависимости от цели: для снижения веса используется умеренный дефицит,
-                    для набора мышечной массы — небольшой профицит, для поддержания формы —
-                    поддерживающая калорийность.
-                </p>
+{% if goal_summary %}
+<section class="result-panel mb-4">
+    <div class="result-panel-header">
+        <span>Цель</span>
+        <h3>План достижения цели</h3>
+    </div>
 
-                <p>
-                    Количество белка рассчитывается с учётом массы тела и выбранной цели.
-                    Такой подход используется в спортивном питании, так как для тренирующихся
-                    людей потребность в белке зависит не только от общей калорийности,
-                    но и от массы тела.
-                </p>
-            </div>
+    <div class="goal-summary-grid">
+        <div>
+            <span>Текущий вес</span>
+            <strong>{{ goal_summary.current_weight }} кг</strong>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                Рекомендации по питанию
-            </div>
-            <div class="card-body">
-                <p class="plan-text">{{ nutrition_plan }}</p>
-            </div>
+        <div>
+            <span>Желаемый вес</span>
+            <strong>{{ goal_summary.target_weight }} кг</strong>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                Программа тренировок
-            </div>
-            <div class="card-body">
-                <p class="plan-text">{{ training_plan }}</p>
-            </div>
+        <div>
+            <span>Изменение веса</span>
+            <strong>{{ goal_summary.weight_difference }} кг</strong>
         </div>
 
-        <div class="text-center">
-            <a href="{{ url_for('calculator') }}" class="btn btn-primary">
-                Выполнить новый расчёт
-            </a>
+        {% if goal_summary.recommended_weeks %}
+        <div>
+            <span>Срок</span>
+            <strong>{{ goal_summary.recommended_weeks }} недель</strong>
+        </div>
 
-            <a href="{{ url_for('home') }}" class="btn btn-outline-secondary">
-                В личный кабинет
-            </a>
+        <div>
+            <span>Темп</span>
+            <strong>{{ goal_summary.weekly_rate }} кг/нед.</strong>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="plan-note">
+        <pre class="result-text">{{ goal_summary.description }}</pre>
+    </div>
+</section>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">Расчёт питания</h3>
+    </div>
+
+    <div class="card-body">
+        <div class="stat-grid">
+            <div class="stat-card stat-primary">
+                <span>Калорийность</span>
+                <strong>{{ calories }}</strong>
+                <small>ккал в сутки</small>
+            </div>
+
+            <div class="stat-card">
+                <span>Белки</span>
+                <strong>{{ proteins }}</strong>
+                <small>г в сутки</small>
+            </div>
+
+            <div class="stat-card">
+                <span>Жиры</span>
+                <strong>{{ fats }}</strong>
+                <small>г в сутки</small>
+            </div>
+
+            <div class="stat-card">
+                <span>Углеводы</span>
+                <strong>{{ carbs }}</strong>
+                <small>г в сутки</small>
+            </div>
         </div>
     </div>
 </div>
+
+<div class="plan-grid mb-4">
+    <section class="plan-card">
+        <div class="plan-card-header">
+            <span>Питание</span>
+            <h3>Рекомендации по питанию</h3>
+        </div>
+
+        <div class="plan-body">
+            {% for line in nutrition_plan.split('\n') %}
+                {% set item = line.strip() %}
+                {% if item %}
+                <div class="plan-line {% if item.endswith(':') %}plan-line-heading{% elif item.startswith('- ') %}plan-line-item{% else %}plan-line-text{% endif %}">
+                    {{ item[2:] if item.startswith('- ') else item }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="plan-card">
+        <div class="plan-card-header">
+            <span>Тренировки</span>
+            <h3>Программа тренировок</h3>
+        </div>
+
+        <div class="plan-body">
+            {% for line in training_plan.split('\n') %}
+                {% set item = line.strip() %}
+                {% if item %}
+                <div class="plan-line {% if item.startswith('День ') %}plan-day-title{% elif item.endswith(':') %}plan-line-heading{% elif item.startswith('- ') %}plan-line-item{% else %}plan-line-text{% endif %}">
+                    {{ item[2:] if item.startswith('- ') else item }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<div class="alert alert-info plan-alert">
+    <div>
+        <strong>Отслеживание прогресса</strong>
+        <p>
+            После начала программы рекомендуется фиксировать вес 1 раз в неделю.
+            Это позволит отслеживать динамику и при необходимости корректировать питание и нагрузку.
+        </p>
+    </div>
+</div>
+
+<div class="mt-4 d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('calculator') }}" class="btn btn-primary">
+        Выполнить новый расчёт
+    </a>
+
+    <a href="{{ url_for('home') }}" class="btn btn-secondary">
+        В личный кабинет
+    </a>
+
+    <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">
+        История расчётов
+    </a>
+
+    {% if profile_id %}
+    <a href="{{ url_for('progress', profile_id=profile_id) }}" class="btn btn-success">
+        Отслеживать прогресс
+    </a>
+    {% endif %}
+</div>
+
 {% endblock %}

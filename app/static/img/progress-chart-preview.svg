@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="506" viewBox="0 0 860 506" role="img" aria-label="Пример графика изменения веса">
+  <defs>
+    <linearGradient id="cardBg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="1" stop-color="#edf7fb"/>
+    </linearGradient>
+    <linearGradient id="plotBg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f5fbfd"/>
+      <stop offset="1" stop-color="#e8f6f8"/>
+    </linearGradient>
+    <linearGradient id="lineFill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#13899a" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#13899a" stop-opacity=".04"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#17212b" flood-opacity=".12"/>
+    </filter>
+  </defs>
+
+  <rect x="1.5" y="1.5" width="857" height="503" rx="8" fill="url(#cardBg)" stroke="#bfe1e7" stroke-width="3" filter="url(#softShadow)"/>
+  <rect x="3" y="3" width="854" height="40" rx="7" fill="#103f4f"/>
+  <path d="M3 35H857V43H3Z" fill="#103f4f"/>
+  <text x="20" y="29" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">График изменения веса</text>
+
+  <text x="24" y="82" fill="#34485d" font-family="Segoe UI, Arial, sans-serif" font-size="16">
+    Синяя линия показывает фактический вес пользователя. Серая линия показывает плановую динамику
+  </text>
+  <text x="24" y="106" fill="#34485d" font-family="Segoe UI, Arial, sans-serif" font-size="16">изменения веса.</text>
+
+  <rect x="24" y="129" width="816" height="358" rx="7" fill="url(#plotBg)" stroke="#bfe1e7"/>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#4f6174">
+    <text x="71" y="416">55 кг</text>
+    <text x="64" y="388">55.2 кг</text>
+    <text x="64" y="360">55.4 кг</text>
+    <text x="64" y="332">55.6 кг</text>
+    <text x="64" y="304">55.8 кг</text>
+    <text x="77" y="276">56 кг</text>
+    <text x="64" y="248">56.2 кг</text>
+    <text x="64" y="220">56.4 кг</text>
+    <text x="64" y="192">56.6 кг</text>
+  </g>
+
+  <g stroke="#c7d9e4" stroke-width="1">
+    <line x1="113" y1="410" x2="790" y2="410"/>
+    <line x1="113" y1="382" x2="790" y2="382"/>
+    <line x1="113" y1="354" x2="790" y2="354"/>
+    <line x1="113" y1="326" x2="790" y2="326"/>
+    <line x1="113" y1="298" x2="790" y2="298"/>
+    <line x1="113" y1="270" x2="790" y2="270"/>
+    <line x1="113" y1="242" x2="790" y2="242"/>
+    <line x1="113" y1="214" x2="790" y2="214"/>
+    <line x1="113" y1="186" x2="790" y2="186"/>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">
+    <circle cx="560" cy="170" r="6" fill="#fff" stroke="#13899a" stroke-width="3"/>
+    <text x="572" y="175" fill="#34485d">Фактический вес</text>
+    <circle cx="704" cy="170" r="6" fill="#fff" stroke="#ff8a5b" stroke-width="3"/>
+    <text x="716" y="175" fill="#34485d">Плановый вес</text>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#4f6174">
+    <text x="98" y="438">Неделя 1</text>
+    <text x="264" y="438">Неделя 2</text>
+    <text x="431" y="438">Неделя 3</text>
+    <text x="597" y="438">Неделя 4</text>
+    <text x="763" y="438">Неделя 5</text>
+    <text x="398" y="463" font-weight="700">Неделя программы</text>
+    <text x="55" y="315" transform="rotate(-90 55 315)" font-weight="700">Вес</text>
+  </g>
+
+  <path d="M124 410 L290 340 L456 312 L623 270 L790 200 L790 410 Z" fill="url(#lineFill)"/>
+  <path d="M124 410 C180 386 232 355 290 340 C348 324 396 321 456 312 C520 301 566 286 623 270 C684 250 734 226 790 200" fill="none" stroke="#13899a" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M124 410 C180 392 236 372 290 362 C350 342 402 324 456 312 C516 298 566 278 623 266 C682 246 734 228 790 216" fill="none" stroke="#ff8a5b" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7 7"/>
+
+  <g fill="#fff" stroke="#13899a" stroke-width="3">
+    <circle cx="124" cy="410" r="5.5"/>
+    <circle cx="290" cy="340" r="5.5"/>
+    <circle cx="456" cy="312" r="5.5"/>
+    <circle cx="623" cy="270" r="5.5"/>
+    <circle cx="790" cy="200" r="5.5"/>
+  </g>
+  <g fill="#fff" stroke="#ff8a5b" stroke-width="2.5">
+    <circle cx="124" cy="410" r="4.5"/>
+    <circle cx="290" cy="362" r="4.5"/>
+    <circle cx="456" cy="312" r="4.5"/>
+    <circle cx="623" cy="266" r="4.5"/>
+    <circle cx="790" cy="216" r="4.5"/>
+  </g>
+</svg>

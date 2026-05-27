@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Мой прогресс{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+
+        <h2 class="mb-4 text-center">Мой прогресс</h2>
+
+        {% if not latest_profile %}
+            <div class="alert alert-warning">
+                У вас пока нет рассчитанной программы. Сначала выполните расчёт, чтобы приложение знало текущий и желаемый вес.
+            </div>
+
+            <div class="text-center">
+                <a href="{{ url_for('calculator') }}" class="btn btn-primary">
+                    Перейти к расчёту программы
+                </a>
+            </div>
+        {% else %}
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    Цель пользователя
+                </div>
+                <div class="card-body">
+                    <p><strong>Начальный вес:</strong> {{ latest_profile.start_weight }} кг</p>
+                    <p><strong>Желаемый вес:</strong> {{ latest_profile.target_weight }} кг</p>
+                    <p><strong>Ориентировочный срок:</strong> {{ latest_profile.target_duration_weeks }} недель</p>
+                </div>
+            </div>
+
+            {% if progress_summary %}
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6>Начальный вес</h6>
+                                <h4>{{ progress_summary.initial_weight }} кг</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6>Текущий вес</h6>
+                                <h4>{{ progress_summary.current_weight }} кг</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6>Изменение</h6>
+                                <h4>{{ progress_summary.total_change }} кг</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6>Прогресс</h6>
+                                <h4>{{ progress_summary.progress_percent }}%</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Выполнение цели
+                    </div>
+                    <div class="card-body">
+                        <div class="progress" style="height: 28px;">
+                            <div class="progress-bar" role="progressbar"
+                                 style="width: {{ progress_summary.progress_percent }}%;"
+                                 aria-valuenow="{{ progress_summary.progress_percent }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                {{ progress_summary.progress_percent }}%
+                            </div>
+                        </div>
+
+                        <p class="mt-3">
+                            {% if progress_summary.goal_type == "weight_loss" %}
+                                До желаемого веса осталось примерно:
+                                <strong>{{ progress_summary.remaining_to_target }} кг</strong>.
+                            {% elif progress_summary.goal_type == "muscle_gain" %}
+                                До желаемого веса осталось набрать примерно:
+                                <strong>{{ progress_summary.remaining_to_target }} кг</strong>.
+                            {% else %}
+                                Основная цель — поддержание стабильного веса.
+                            {% endif %}
+                        </p>
+
+                        {% if progress_summary.current_week %}
+                            <p>
+                                Последняя запись относится к неделе:
+                                <strong>{{ progress_summary.current_week }}</strong>.
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if progress_message %}
+                <div class="alert alert-{{ progress_message.type }}">
+                    {{ progress_message.text }}
+                </div>
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    Добавить новую запись веса
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.week_number.label(class="form-label") }}
+                            {{ form.week_number(class="form-control") }}
+                            <div class="form-text">
+                                Укажите номер недели программы. Например: 1, 2, 3.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.weight.label(class="form-label") }}
+                            {{ form.weight(class="form-control") }}
+                            <div class="form-text">
+                                Рекомендуется фиксировать вес 1 раз в неделю утром, в одинаковых условиях.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.note.label(class="form-label") }}
+                            {{ form.note(class="form-control", rows="3") }}
+                            <div class="form-text">
+                                Например: "первая неделя", "увеличил активность", "не соблюдал питание".
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if progress_records %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        График изменения веса
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Синяя линия показывает фактический вес пользователя.
+                            Серая линия показывает плановую динамику изменения веса.
+                        </p>
+
+                        <div class="chart-shell">
+                            <canvas id="weightChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        История записей
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Неделя</th>
+                                        <th>Дата добавления</th>
+                                        <th>Вес</th>
+                                        <th>Комментарий</th>
+                                        <th>Действие</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in progress_records %}
+                                    <tr>
+                                        <td>{{ record.week_number }}</td>
+                                        <td>{{ record.created_at }}</td>
+                                        <td>{{ record.weight }} кг</td>
+                                        <td>{{ record.note or "—" }}</td>
+                                        <td>
+                                            <form method="post"
+                                                  action="{{ url_for('delete_progress_record', profile_id=latest_profile.profile_id, progress_id=record.progress_id) }}"
+                                                  onsubmit="return confirm('Удалить эту запись прогресса?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    Удалить
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    Пока нет записей прогресса. Добавьте первый текущий вес, чтобы начать отслеживание.
+                </div>
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+</div>
+
+{% if progress_records %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = {{ chart_labels | tojson }};
+    const weights = {{ chart_weights | tojson }};
+    const planWeights = {{ chart_plan_weights | tojson }};
+
+    const ctx = document.getElementById('weightChart');
+    const chartContext = ctx.getContext('2d');
+    const actualGradient = chartContext.createLinearGradient(0, 0, 0, 340);
+    actualGradient.addColorStop(0, 'rgba(19, 124, 139, 0.28)');
+    actualGradient.addColorStop(1, 'rgba(19, 124, 139, 0.02)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Фактический вес',
+                    data: weights,
+                    borderColor: '#137c8b',
+                    backgroundColor: actualGradient,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#137c8b',
+                    pointBorderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 3,
+                    tension: 0.38,
+                    fill: true
+                },
+                {
+                    label: 'Плановый вес',
+                    data: planWeights,
+                    borderColor: '#ff8a5b',
+                    backgroundColor: 'rgba(255, 138, 91, 0.08)',
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#ff8a5b',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2.5,
+                    tension: 0.38,
+                    fill: false,
+                    borderDash: [7, 6]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        color: '#34485d',
+                        padding: 18,
+                        font: {
+                            size: 13,
+                            weight: '600'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#132530',
+                    titleColor: '#ffffff',
+                    bodyColor: '#d8eef4',
+                    borderColor: 'rgba(255, 255, 255, 0.14)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y} кг`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    border: {
+                        display: false
+                    },
+                    grid: {
+                        color: 'rgba(79, 97, 116, 0.16)'
+                    },
+                    ticks: {
+                        color: '#4f6174',
+                        padding: 8,
+                        callback: function(value) {
+                            return value + ' кг';
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Вес',
+                        color: '#34485d',
+                        font: {
+                            weight: '700'
+                        }
+                    }
+                },
+                x: {
+                    border: {
+                        display: false
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#4f6174',
+                        padding: 8
+                    },
+                    title: {
+                        display: true,
+                        text: 'Неделя программы',
+                        color: '#34485d',
+                        font: {
+                            weight: '700'
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}
